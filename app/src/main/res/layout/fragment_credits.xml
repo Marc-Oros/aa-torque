@@ -19,7 +19,7 @@
         android:id="@+id/myName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Kyle Agronick"
+        android:text="Marc Orós"
         android:layout_marginBottom="10dp" />
 
     <TextView
@@ -34,7 +34,7 @@
         android:id="@+id/textView4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Chillout"
+        android:text="Kyle Agronick"
         android:layout_marginBottom="10dp" />
 
 
