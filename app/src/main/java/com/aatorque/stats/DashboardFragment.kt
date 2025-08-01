@@ -307,6 +307,15 @@ open class DashboardFragment : AlbumArt() {
     }
 
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Add the TireHudFragment to the top-left container
+        childFragmentManager.beginTransaction()
+            .replace(R.id.tire_hud_container, TireHudFragment())
+            .commit()
+    }
+
     fun setScreen(direction: Int) {
         if (screensAnimating) return
         screensAnimating = true
