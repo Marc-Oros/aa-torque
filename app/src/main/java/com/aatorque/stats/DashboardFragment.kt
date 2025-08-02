@@ -480,14 +480,14 @@ open class DashboardFragment : AlbumArt() {
     private fun updateTireHudData(screenIndex: Int) {
         // Create tire display configurations for pressure and temperature
         val tireDisplays = listOf(
-            createTireDisplay("Front Left FL Tire Pressure", "Tire ID 1 Pressure"),
-            createTireDisplay("Front Right FR Tire Pressure", "Tire ID 2 Pressure"),
-            createTireDisplay("Rear Left RL Tire Pressure", "Tire ID 3 Pressure"),
-            createTireDisplay("Rear Right RR Tire Pressure", "Tire ID 4 Pressure"),
-            createTireDisplay("Front Left FL Tire Temperature", "Tire ID 1 Temperature"),
-            createTireDisplay("Front Right FR Tire Temperature", "Tire ID 2 Temperature"),
-            createTireDisplay("Rear Left RL Tire Temperature", "Tire ID 3 Temperature"),
-            createTireDisplay("Rear Right RR Tire Temperature", "Tire ID 4 Temperature")
+            createTireDisplay("FL Tire Pressure", "torque_221005,2011793692"),
+            createTireDisplay("FR Tire Pressure", "torque_221005,-1582109026"),
+            createTireDisplay("RL Tire Pressure", "torque_221005,-881044448"),
+            createTireDisplay("RR Tire Pressure", "torque_221005,-179979870"),
+            createTireDisplay("FL Tire Temperature", "torque_221004,1981320"),
+            createTireDisplay("FR Tire Temperature", "torque_221004,2011111"),
+            createTireDisplay("RL Tire Temperature", "torque_221004,2040902"),
+            createTireDisplay("RR Tire Temperature", "torque_221004,2070693")
         )
 
         // Update tire data using the same pattern as displays
