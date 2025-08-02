@@ -494,15 +494,23 @@ open class DashboardFragment : AlbumArt() {
         val baseIndex = 100 // Use index range 100-107 to avoid conflicts with other dashboard elements
         tireDisplays.forEachIndexed { index, display ->
             val torqueData = torqueRefresher.populateQuery(baseIndex + index, screenIndex, display)
-            when (index) {
-                0 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_LEFT, TireHudFragment.DataType.PRESSURE, torqueData)
-                1 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_RIGHT, TireHudFragment.DataType.PRESSURE, torqueData)
-                2 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_LEFT, TireHudFragment.DataType.PRESSURE, torqueData)
-                3 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_RIGHT, TireHudFragment.DataType.PRESSURE, torqueData)
-                4 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_LEFT, TireHudFragment.DataType.TEMPERATURE, torqueData)
-                5 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_RIGHT, TireHudFragment.DataType.TEMPERATURE, torqueData)
-                6 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_LEFT, TireHudFragment.DataType.TEMPERATURE, torqueData)
-                7 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_RIGHT, TireHudFragment.DataType.TEMPERATURE, torqueData)
+
+            // Map index to tire position and data type
+            val (position, dataType) = when (index) {
+                0 -> TireHudFragment.TirePosition.FRONT_LEFT to TireHudFragment.DataType.PRESSURE
+                1 -> TireHudFragment.TirePosition.FRONT_RIGHT to TireHudFragment.DataType.PRESSURE
+                2 -> TireHudFragment.TirePosition.REAR_LEFT to TireHudFragment.DataType.PRESSURE
+                3 -> TireHudFragment.TirePosition.REAR_RIGHT to TireHudFragment.DataType.PRESSURE
+                4 -> TireHudFragment.TirePosition.FRONT_LEFT to TireHudFragment.DataType.TEMPERATURE
+                5 -> TireHudFragment.TirePosition.FRONT_RIGHT to TireHudFragment.DataType.TEMPERATURE
+                6 -> TireHudFragment.TirePosition.REAR_LEFT to TireHudFragment.DataType.TEMPERATURE
+                7 -> TireHudFragment.TirePosition.REAR_RIGHT to TireHudFragment.DataType.TEMPERATURE
+                else -> throw IllegalStateException("Invalid tire data index")
+            }
+
+            // Set up callback to update TireHudFragment when data changes
+            torqueData.notifyUpdate = { data ->
+                tireHudFragment.updateTireData(position, dataType, data.lastData)
             }
         }
     }
