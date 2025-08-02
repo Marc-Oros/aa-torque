@@ -53,10 +53,11 @@ open class DashboardFragment : AlbumArt() {
     private lateinit var mBtnNext: ImageButton
     private lateinit var mBtnPrev: ImageButton
     private lateinit var mTitleElement: TextView
+    private lateinit var tireHudFragment: TireHudFragment
     private lateinit var mWrapper: RelativeLayout
-    lateinit var mConStatus: TextView
 
-    var guages = arrayOfNulls<TorqueGauge>(3)
+    lateinit var mConStatus: TextView
+    var gauges = arrayOfNulls<TorqueGauge>(3)
     var displays = arrayOfNulls<TorqueDisplay>(4)
     var gaugeViews = arrayOfNulls<FragmentContainerView>(3)
 
@@ -138,7 +139,7 @@ open class DashboardFragment : AlbumArt() {
                     screens.gaugesList.forEachIndexed { index, display ->
                         if (showChartChanged || torqueRefresher.hasChanged(index, display)) {
                             val clock = torqueRefresher.populateQuery(index, screenIndex, display)
-                            guages[index]?.setupClock(clock)
+                            gauges[index]?.setupClock(clock)
                         }
                     }
                 }
@@ -152,6 +153,10 @@ open class DashboardFragment : AlbumArt() {
                         displays[index]?.setupElement(td)
                     }
                 }
+
+                // Update tire HUD data the same way as other elements
+                updateTireHudData(screenIndex)
+
                 torqueRefresher.makeExecutors(torqueService)
             }
         }
@@ -247,9 +252,9 @@ open class DashboardFragment : AlbumArt() {
         gaugeViews[1] = binding.gaugeCenter
         gaugeViews[2] = binding.gaugeRight
 
-        guages[0] = childFragmentManager.findFragmentById(R.id.gaugeLeft)!! as TorqueGauge
-        guages[1] = childFragmentManager.findFragmentById(R.id.gaugeCenter)!! as TorqueGauge
-        guages[2] = childFragmentManager.findFragmentById(R.id.gaugeRight)!! as TorqueGauge
+        gauges[0] = childFragmentManager.findFragmentById(R.id.gaugeLeft)!! as TorqueGauge
+        gauges[1] = childFragmentManager.findFragmentById(R.id.gaugeCenter)!! as TorqueGauge
+        gauges[2] = childFragmentManager.findFragmentById(R.id.gaugeRight)!! as TorqueGauge
         displays[0] = childFragmentManager.findFragmentById(R.id.display1)!! as TorqueDisplay
         displays[1] = childFragmentManager.findFragmentById(R.id.display2)!! as TorqueDisplay
         displays[2] = childFragmentManager.findFragmentById(R.id.display3)!! as TorqueDisplay
@@ -257,6 +262,10 @@ open class DashboardFragment : AlbumArt() {
         displays[2]!!.isBottomDisplay = true
         displays[3]!!.isBottomDisplay = true
         torqueChart = childFragmentManager.findFragmentById(R.id.chartFrag)!! as TorqueChart
+
+        // Get reference to TireHudFragment the same way as other fragments
+        tireHudFragment = childFragmentManager.findFragmentById(R.id.tire_hud_fragment)!! as TireHudFragment
+
         val filter = IntentFilter().apply { addAction("KEY_DOWN") }
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(object : BroadcastReceiver() {
@@ -304,16 +313,6 @@ open class DashboardFragment : AlbumArt() {
         }
         configureRotaryInput()
         return rootView
-    }
-
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        // Add the TireHudFragment to the top-left container
-        childFragmentManager.beginTransaction()
-            .replace(R.id.tire_hud_container, TireHudFragment())
-            .commit()
     }
 
     fun setScreen(direction: Int) {
@@ -478,5 +477,41 @@ open class DashboardFragment : AlbumArt() {
         settingsViewModel.setFont(font)
     }
 
+    private fun updateTireHudData(screenIndex: Int) {
+        // Create tire display configurations for pressure and temperature
+        val tireDisplays = listOf(
+            createTireDisplay("Front Left FL Tire Pressure", "Tire ID 1 Pressure"),
+            createTireDisplay("Front Right FR Tire Pressure", "Tire ID 2 Pressure"),
+            createTireDisplay("Rear Left RL Tire Pressure", "Tire ID 3 Pressure"),
+            createTireDisplay("Rear Right RR Tire Pressure", "Tire ID 4 Pressure"),
+            createTireDisplay("Front Left FL Tire Temperature", "Tire ID 1 Temperature"),
+            createTireDisplay("Front Right FR Tire Temperature", "Tire ID 2 Temperature"),
+            createTireDisplay("Rear Left RL Tire Temperature", "Tire ID 3 Temperature"),
+            createTireDisplay("Rear Right RR Tire Temperature", "Tire ID 4 Temperature")
+        )
 
+        // Update tire data using the same pattern as displays
+        val baseIndex = 100 // Use index range 100-107 to avoid conflicts with other dashboard elements
+        tireDisplays.forEachIndexed { index, display ->
+            val torqueData = torqueRefresher.populateQuery(baseIndex + index, screenIndex, display)
+            when (index) {
+                0 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_LEFT, TireHudFragment.DataType.PRESSURE, torqueData)
+                1 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_RIGHT, TireHudFragment.DataType.PRESSURE, torqueData)
+                2 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_LEFT, TireHudFragment.DataType.PRESSURE, torqueData)
+                3 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_RIGHT, TireHudFragment.DataType.PRESSURE, torqueData)
+                4 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_LEFT, TireHudFragment.DataType.TEMPERATURE, torqueData)
+                5 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.FRONT_RIGHT, TireHudFragment.DataType.TEMPERATURE, torqueData)
+                6 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_LEFT, TireHudFragment.DataType.TEMPERATURE, torqueData)
+                7 -> tireHudFragment.updateTireData(TireHudFragment.TirePosition.REAR_RIGHT, TireHudFragment.DataType.TEMPERATURE, torqueData)
+            }
+        }
+    }
+
+    private fun createTireDisplay(label: String, pid: String): com.aatorque.datastore.Display {
+        return com.aatorque.datastore.Display.newBuilder()
+            .setLabel(label)
+            .setPid(pid)
+            .setDisabled(false)
+            .build()
+    }
 }

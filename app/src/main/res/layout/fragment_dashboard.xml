@@ -380,10 +380,12 @@
         </RelativeLayout>
 
         <!-- Container for TireHudFragment at the top-left -->
-        <FrameLayout
-            android:id="@+id/tire_hud_container"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/tire_hud_fragment"
+            android:name="com.aatorque.stats.TireHudFragment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout="@layout/fragment_tire_hud"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:layout_margin="16dp" />
