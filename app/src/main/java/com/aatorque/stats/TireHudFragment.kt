@@ -111,7 +111,7 @@ class TireHudFragment : Fragment() {
                 DataType.PRESSURE -> textView.text = formatPressure(value)
                 DataType.TEMPERATURE -> {
                     textView.text = formatTemperature(value)
-                    if (value > 0) {
+                    if (value >= 0) {
                         squareView.setBackgroundColor(getTemperatureColor(value.toFloat()))
                     }
                 }
@@ -136,6 +136,7 @@ class TireHudFragment : Fragment() {
     }
 
     private fun getTemperatureColor(temperature: Float): Int {
+        val temperature = temperature + 65f
         return when {
             temperature <= 25f -> {
                 // Blue zone
