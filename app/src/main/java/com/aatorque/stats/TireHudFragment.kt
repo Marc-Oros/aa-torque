@@ -16,6 +16,9 @@ class TireHudFragment : Fragment() {
 
     private lateinit var binding: FragmentTireHudBinding
 
+    // Store TorqueData objects for each tire sensor, just like other components do
+    private val tireDataMap = mutableMapOf<Pair<TirePosition, DataType>, TorqueData?>()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -34,6 +37,24 @@ class TireHudFragment : Fragment() {
         observeChartVisibility()
     }
 
+    // Method to setup tire data using TorqueData objects, just like TorqueDisplay.setupElement()
+    fun setupTireData(position: TirePosition, dataType: DataType, torqueData: TorqueData) {
+        // Store the TorqueData object
+        tireDataMap[position to dataType] = torqueData
+
+        // Set up the callback to receive data updates, same pattern as other components
+        torqueData.notifyUpdate = { data ->
+            Timber.i("TIRE DATA UPDATE: $position $dataType = ${data.lastData} (PID: ${data.display.pid})")
+            updateSingleTireData(position, dataType, data.lastData)
+        }
+
+        // CRITICAL FIX: Set hasReceivedNonZero to true so tire data always updates
+        // This ensures that even zero values trigger UI updates in Android Auto
+        torqueData.hasReceivedNonZero = true
+
+        Timber.i("Tire data setup for $position $dataType with PID: ${torqueData.display.pid}, notifyUpdate set: ${torqueData.notifyUpdate != null}")
+    }
+
     private fun initializePlaceholderData() {
         // Initialize all tire displays with placeholder data until real data arrives
         updateSingleTireData(TirePosition.FRONT_LEFT, DataType.PRESSURE, -1.0)
@@ -47,44 +68,50 @@ class TireHudFragment : Fragment() {
     }
 
     private fun updateSingleTireData(position: TirePosition, dataType: DataType, value: Double) {
-        activity?.runOnUiThread {
-            val (textView, squareView) = when (position) {
-                TirePosition.FRONT_LEFT -> {
-                    when (dataType) {
-                        DataType.PRESSURE -> binding.frontLeftTirePressure to binding.frontLeftTireSquare
-                        DataType.TEMPERATURE -> binding.frontLeftTireTemperature to binding.frontLeftTireSquare
-                    }
-                }
+        Timber.i("updateSingleTireData called: $position $dataType = $value")
 
-                TirePosition.FRONT_RIGHT -> {
-                    when (dataType) {
-                        DataType.PRESSURE -> binding.frontRightTirePressure to binding.frontRightTireSquare
-                        DataType.TEMPERATURE -> binding.frontRightTireTemperature to binding.frontRightTireSquare
-                    }
-                }
+        if (!::binding.isInitialized) {
+            Timber.e("Binding not initialized, cannot update tire data")
+            return
+        }
 
-                TirePosition.REAR_LEFT -> {
-                    when (dataType) {
-                        DataType.PRESSURE -> binding.rearLeftTirePressure to binding.rearLeftTireSquare
-                        DataType.TEMPERATURE -> binding.rearLeftTireTemperature to binding.rearLeftTireSquare
-                    }
-                }
-
-                TirePosition.REAR_RIGHT -> {
-                    when (dataType) {
-                        DataType.PRESSURE -> binding.rearRightTirePressure to binding.rearRightTireSquare
-                        DataType.TEMPERATURE -> binding.rearRightTireTemperature to binding.rearRightTireSquare
-                    }
+        // Update UI directly like TorqueDisplay and TorqueGauge do - NO runOnUiThread
+        val (textView, squareView) = when (position) {
+            TirePosition.FRONT_LEFT -> {
+                when (dataType) {
+                    DataType.PRESSURE -> binding.frontLeftTirePressure to binding.frontLeftTireSquare
+                    DataType.TEMPERATURE -> binding.frontLeftTireTemperature to binding.frontLeftTireSquare
                 }
             }
 
-            when (dataType) {
-                DataType.PRESSURE -> textView.text = formatPressure(value)
-                DataType.TEMPERATURE -> {
-                    textView.text = formatTemperature(value)
-                    if (value >= 0) {
-                        squareView.setBackgroundColor(getTemperatureColor(value.toFloat()))
-                    }
+            TirePosition.FRONT_RIGHT -> {
+                when (dataType) {
+                    DataType.PRESSURE -> binding.frontRightTirePressure to binding.frontRightTireSquare
+                    DataType.TEMPERATURE -> binding.frontRightTireTemperature to binding.frontRightTireSquare
+                }
+            }
+
+            TirePosition.REAR_LEFT -> {
+                when (dataType) {
+                    DataType.PRESSURE -> binding.rearLeftTirePressure to binding.rearLeftTireSquare
+                    DataType.TEMPERATURE -> binding.rearLeftTireTemperature to binding.rearLeftTireSquare
+                }
+            }
+
+            TirePosition.REAR_RIGHT -> {
+                when (dataType) {
+                    DataType.PRESSURE -> binding.rearRightTirePressure to binding.rearRightTireSquare
+                    DataType.TEMPERATURE -> binding.rearRightTireTemperature to binding.rearRightTireSquare
+                }
+            }
+        }
+
+        when (dataType) {
+            DataType.PRESSURE -> textView.text = formatPressure(value)
+            DataType.TEMPERATURE -> {
+                textView.text = formatTemperature(value)
+                if (value >= 0) {
+                    squareView.setBackgroundColor(getTemperatureColor(value.toFloat()))
                 }
             }
         }
@@ -140,13 +167,36 @@ class TireHudFragment : Fragment() {
         updateSingleTireData(position, dataType, value)
     }
 
+    // Method to clear all tire data when preferences change
+    fun clearAllTireData() {
+        // Clear all stored TorqueData objects and reset to placeholder values
+        tireDataMap.clear()
+
+        // Reset all tires to placeholder data
+        initializePlaceholderData()
+    }
+
     private fun observeChartVisibility() {
         // Get the settings view model from the parent fragment (DashboardFragment)
-        val parentFragment = parentFragment as? DashboardFragment
-        parentFragment?.settingsViewModel?.chartVisible?.observe(viewLifecycleOwner) { chartVisible ->
-            // Hide tire HUD when chart is visible, show when gauges are visible
-            binding.root.visibility = if (chartVisible == true) View.GONE else View.VISIBLE
-            Timber.i("Chart visibility changed to $chartVisible, tire HUD visibility: ${if (chartVisible == true) "GONE" else "VISIBLE"}")
+        // Handle both direct parent and activity-level fragment manager cases
+        val dashboardFragment = when {
+            parentFragment is DashboardFragment -> parentFragment as DashboardFragment
+            activity?.supportFragmentManager?.fragments?.any { it is DashboardFragment } == true -> {
+                activity?.supportFragmentManager?.fragments?.find { it is DashboardFragment } as? DashboardFragment
+            }
+            else -> null
+        }
+
+        if (dashboardFragment != null) {
+            dashboardFragment.settingsViewModel.chartVisible.observe(viewLifecycleOwner) { chartVisible ->
+                // Hide tire HUD when chart is visible, show when gauges are visible
+                binding.root.visibility = if (chartVisible == true) View.GONE else View.VISIBLE
+                Timber.i("Chart visibility changed to $chartVisible, tire HUD visibility: ${if (chartVisible == true) "GONE" else "VISIBLE"}")
+            }
+        } else {
+            Timber.w("Could not find DashboardFragment parent - tire HUD will remain visible")
+            // Keep tire HUD visible if we can't find the parent
+            binding.root.visibility = View.VISIBLE
         }
     }
 }

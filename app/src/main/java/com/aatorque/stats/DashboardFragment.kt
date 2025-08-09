@@ -291,6 +291,10 @@ open class DashboardFragment : AlbumArt() {
                                         val userPreference = requireContext().dataStore.data.first()
                                         val screenIndex = abs(userPreference.currentScreen) % userPreference.screensCount
                                         updateTireHudData(screenIndex)
+
+                                        // CRITICAL: Restart executors after updating tire data
+                                        // This ensures the new tire data connections actually start fetching data
+                                        torqueRefresher.makeExecutors(torqueService)
                                     } catch (e: Exception) {
                                         Timber.e(e, "Failed to reload tire HUD data")
                                     }
@@ -505,6 +509,15 @@ open class DashboardFragment : AlbumArt() {
     }
 
     private fun updateTireHudData(screenIndex: Int) {
+        // Check if TireHudFragment is properly initialized
+        if (!::tireHudFragment.isInitialized) {
+            Timber.w("TireHudFragment not initialized, skipping tire data update")
+            return
+        }
+
+        // Clean up existing tire data first - this is crucial for preference updates
+        cleanupExistingTireData()
+
         // Load tire PID preferences from SharedPreferences
         val sharedPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
 
@@ -522,34 +535,29 @@ open class DashboardFragment : AlbumArt() {
             TireHudFragment.TirePosition.REAR_RIGHT to sharedPrefs.getString("tireTemperatureRearRight", "")
         )
 
-        // Create tire display configurations using preferences
-        val tireDisplays = mutableListOf<Pair<com.aatorque.datastore.Display, Pair<TireHudFragment.TirePosition, TireHudFragment.DataType>>>()
+        // Use the same index pattern as other displays but offset to avoid conflicts
+        val baseIndex = 100
+        var currentIndex = baseIndex
 
-        // Add pressure displays for configured PIDs
+        // Setup pressure displays using the same pattern as working displays
         tirePressurePIDs.forEach { (position, pid) ->
             if (!pid.isNullOrEmpty()) {
                 val display = createTireDisplay("${position.name} Tire Pressure", pid)
-                tireDisplays.add(display to (position to TireHudFragment.DataType.PRESSURE))
+                val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
+
+                // Use the same setup pattern as TorqueDisplay.setupElement()
+                tireHudFragment.setupTireData(position, TireHudFragment.DataType.PRESSURE, torqueData)
             }
         }
 
-        // Add temperature displays for configured PIDs
+        // Setup temperature displays using the same pattern as working displays
         tireTemperaturePIDs.forEach { (position, pid) ->
             if (!pid.isNullOrEmpty()) {
                 val display = createTireDisplay("${position.name} Tire Temperature", pid)
-                tireDisplays.add(display to (position to TireHudFragment.DataType.TEMPERATURE))
-            }
-        }
+                val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
 
-        // Update tire data using the same pattern as displays
-        val baseIndex = 100 // Use index range 100+ to avoid conflicts with other dashboard elements
-        tireDisplays.forEachIndexed { index, (display, positionAndType) ->
-            val (position, dataType) = positionAndType
-            val torqueData = torqueRefresher.populateQuery(baseIndex + index, screenIndex, display)
-
-            // Set up callback to update TireHudFragment when data changes
-            torqueData.notifyUpdate = { data ->
-                tireHudFragment.updateTireData(position, dataType, data.lastData)
+                // Use the same setup pattern as TorqueDisplay.setupElement()
+                tireHudFragment.setupTireData(position, TireHudFragment.DataType.TEMPERATURE, torqueData)
             }
         }
     }
@@ -560,5 +568,16 @@ open class DashboardFragment : AlbumArt() {
             .setPid(pid)
             .setDisabled(false)
             .build()
+    }
+
+    private fun cleanupExistingTireData() {
+        // Clean up tire data in the range 100-115 (same range used in updateTireHudData)
+        for (index in 100..115) {
+            torqueRefresher.data[index]?.stopRefreshing(true)
+            torqueRefresher.data.remove(index)
+        }
+
+        // Clear tire data from the TireHudFragment
+        tireHudFragment.clearAllTireData()
     }
 }
