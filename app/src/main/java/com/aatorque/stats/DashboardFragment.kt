@@ -37,6 +37,7 @@ import com.aatorque.utils.CountDownLatch
 import com.google.android.apps.auto.sdk.StatusBarController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -266,12 +267,38 @@ open class DashboardFragment : AlbumArt() {
         // Get reference to TireHudFragment the same way as other fragments
         tireHudFragment = childFragmentManager.findFragmentById(R.id.tire_hud_fragment)!! as TireHudFragment
 
-        val filter = IntentFilter().apply { addAction("KEY_DOWN") }
+        val filter = IntentFilter().apply {
+            addAction("KEY_DOWN")
+            addAction("TIRE_PREFERENCES_CHANGED") // Listen for tire preference changes
+        }
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(object : BroadcastReceiver() {
                 override fun onReceive(p0: Context?, intent: Intent?) {
-                    if (intent?.getIntExtra("KEY_CODE", 0) == KeyEvent.KEYCODE_DPAD_CENTER) {
-                        toggleShowChart(binding.showChart != true)
+                    when (intent?.action) {
+                        "KEY_DOWN" -> {
+                            if (intent.getIntExtra("KEY_CODE", 0) == KeyEvent.KEYCODE_DPAD_CENTER) {
+                                toggleShowChart(binding.showChart != true)
+                            }
+                        }
+                        "TIRE_PREFERENCES_CHANGED" -> {
+                            // Reload tire HUD data when preferences change
+                            Timber.i("Tire preferences changed, reloading tire HUD")
+
+                            // Check if fragment is still attached before accessing context
+                            if (isAdded && context != null) {
+                                lifecycleScope.launch {
+                                    try {
+                                        val userPreference = requireContext().dataStore.data.first()
+                                        val screenIndex = abs(userPreference.currentScreen) % userPreference.screensCount
+                                        updateTireHudData(screenIndex)
+                                    } catch (e: Exception) {
+                                        Timber.e(e, "Failed to reload tire HUD data")
+                                    }
+                                }
+                            } else {
+                                Timber.w("Fragment not attached, skipping tire HUD reload")
+                            }
+                        }
                     }
                 }
             }, filter)
@@ -478,35 +505,47 @@ open class DashboardFragment : AlbumArt() {
     }
 
     private fun updateTireHudData(screenIndex: Int) {
-        // Create tire display configurations for pressure and temperature
-        val tireDisplays = listOf(
-            createTireDisplay("FL Tire Pressure", "torque_221005,2011793692"),
-            createTireDisplay("FR Tire Pressure", "torque_221005,-1582109026"),
-            createTireDisplay("RL Tire Pressure", "torque_221005,-881044448"),
-            createTireDisplay("RR Tire Pressure", "torque_221005,-179979870"),
-            createTireDisplay("FL Tire Temperature", "torque_221004,1981320"),
-            createTireDisplay("FR Tire Temperature", "torque_221004,2011111"),
-            createTireDisplay("RL Tire Temperature", "torque_221004,2040902"),
-            createTireDisplay("RR Tire Temperature", "torque_221004,2070693")
+        // Load tire PID preferences from SharedPreferences
+        val sharedPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+
+        val tirePressurePIDs = mapOf(
+            TireHudFragment.TirePosition.FRONT_LEFT to sharedPrefs.getString("tirePressureFrontLeft", ""),
+            TireHudFragment.TirePosition.FRONT_RIGHT to sharedPrefs.getString("tirePressureFrontRight", ""),
+            TireHudFragment.TirePosition.REAR_LEFT to sharedPrefs.getString("tirePressureRearLeft", ""),
+            TireHudFragment.TirePosition.REAR_RIGHT to sharedPrefs.getString("tirePressureRearRight", "")
         )
 
-        // Update tire data using the same pattern as displays
-        val baseIndex = 100 // Use index range 100-107 to avoid conflicts with other dashboard elements
-        tireDisplays.forEachIndexed { index, display ->
-            val torqueData = torqueRefresher.populateQuery(baseIndex + index, screenIndex, display)
+        val tireTemperaturePIDs = mapOf(
+            TireHudFragment.TirePosition.FRONT_LEFT to sharedPrefs.getString("tireTemperatureFrontLeft", ""),
+            TireHudFragment.TirePosition.FRONT_RIGHT to sharedPrefs.getString("tireTemperatureFrontRight", ""),
+            TireHudFragment.TirePosition.REAR_LEFT to sharedPrefs.getString("tireTemperatureRearLeft", ""),
+            TireHudFragment.TirePosition.REAR_RIGHT to sharedPrefs.getString("tireTemperatureRearRight", "")
+        )
 
-            // Map index to tire position and data type
-            val (position, dataType) = when (index) {
-                0 -> TireHudFragment.TirePosition.FRONT_LEFT to TireHudFragment.DataType.PRESSURE
-                1 -> TireHudFragment.TirePosition.FRONT_RIGHT to TireHudFragment.DataType.PRESSURE
-                2 -> TireHudFragment.TirePosition.REAR_LEFT to TireHudFragment.DataType.PRESSURE
-                3 -> TireHudFragment.TirePosition.REAR_RIGHT to TireHudFragment.DataType.PRESSURE
-                4 -> TireHudFragment.TirePosition.FRONT_LEFT to TireHudFragment.DataType.TEMPERATURE
-                5 -> TireHudFragment.TirePosition.FRONT_RIGHT to TireHudFragment.DataType.TEMPERATURE
-                6 -> TireHudFragment.TirePosition.REAR_LEFT to TireHudFragment.DataType.TEMPERATURE
-                7 -> TireHudFragment.TirePosition.REAR_RIGHT to TireHudFragment.DataType.TEMPERATURE
-                else -> throw IllegalStateException("Invalid tire data index")
+        // Create tire display configurations using preferences
+        val tireDisplays = mutableListOf<Pair<com.aatorque.datastore.Display, Pair<TireHudFragment.TirePosition, TireHudFragment.DataType>>>()
+
+        // Add pressure displays for configured PIDs
+        tirePressurePIDs.forEach { (position, pid) ->
+            if (!pid.isNullOrEmpty()) {
+                val display = createTireDisplay("${position.name} Tire Pressure", pid)
+                tireDisplays.add(display to (position to TireHudFragment.DataType.PRESSURE))
             }
+        }
+
+        // Add temperature displays for configured PIDs
+        tireTemperaturePIDs.forEach { (position, pid) ->
+            if (!pid.isNullOrEmpty()) {
+                val display = createTireDisplay("${position.name} Tire Temperature", pid)
+                tireDisplays.add(display to (position to TireHudFragment.DataType.TEMPERATURE))
+            }
+        }
+
+        // Update tire data using the same pattern as displays
+        val baseIndex = 100 // Use index range 100+ to avoid conflicts with other dashboard elements
+        tireDisplays.forEachIndexed { index, (display, positionAndType) ->
+            val (position, dataType) = positionAndType
+            val torqueData = torqueRefresher.populateQuery(baseIndex + index, screenIndex, display)
 
             // Set up callback to update TireHudFragment when data changes
             torqueData.notifyUpdate = { data ->

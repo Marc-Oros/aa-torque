@@ -196,4 +196,15 @@
     <string name="value">Value</string>
     <string name="color">Color</string>
     <string name="invalid_settings">Attempted to import invalid settings file.</string>
+    <string name="tire_pressure_temperature">Tire Pressure &amp; Temperature</string>
+    <string name="tire_pressure_settings">Tire Pressure PIDs</string>
+    <string name="tire_temperature_settings">Tire Temperature PIDs</string>
+    <string name="tire_pressure_front_left">Front Left Tire Pressure</string>
+    <string name="tire_pressure_front_right">Front Right Tire Pressure</string>
+    <string name="tire_pressure_rear_left">Rear Left Tire Pressure</string>
+    <string name="tire_pressure_rear_right">Rear Right Tire Pressure</string>
+    <string name="tire_temperature_front_left">Front Left Tire Temperature</string>
+    <string name="tire_temperature_front_right">Front Right Tire Temperature</string>
+    <string name="tire_temperature_rear_left">Rear Left Tire Temperature</string>
+    <string name="tire_temperature_rear_right">Rear Right Tire Temperature</string>
 </resources>

@@ -48,7 +48,7 @@
             <View
                 android:id="@+id/front_left_tire_square"
                 android:layout_width="16dp"
-                android:layout_height="32dp"
+                android:layout_height="28dp"
                 android:background="@android:color/darker_gray" />
 
         </LinearLayout>
@@ -62,7 +62,7 @@
             <View
                 android:id="@+id/front_right_tire_square"
                 android:layout_width="16dp"
-                android:layout_height="32dp"
+                android:layout_height="28dp"
                 android:background="@android:color/darker_gray" />
 
             <LinearLayout
@@ -133,7 +133,7 @@
             <View
                 android:id="@+id/rear_left_tire_square"
                 android:layout_width="16dp"
-                android:layout_height="32dp"
+                android:layout_height="28dp"
                 android:background="@android:color/darker_gray" />
 
         </LinearLayout>
@@ -147,7 +147,7 @@
             <View
                 android:id="@+id/rear_right_tire_square"
                 android:layout_width="16dp"
-                android:layout_height="32dp"
+                android:layout_height="28dp"
                 android:background="@android:color/darker_gray" />
 
             <LinearLayout

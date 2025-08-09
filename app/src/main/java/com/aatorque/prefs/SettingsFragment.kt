@@ -37,6 +37,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
     lateinit var darkenArtPref: SeekBarPreference
     lateinit var blurArtPref: SeekBarPreference
 
+    // Tire pressure PID selectors
+    lateinit var tirePressureFrontLeftPref: ListPreference
+    lateinit var tirePressureFrontRightPref: ListPreference
+    lateinit var tirePressureRearLeftPref: ListPreference
+    lateinit var tirePressureRearRightPref: ListPreference
+
+    // Tire temperature PID selectors
+    lateinit var tireTemperatureFrontLeftPref: ListPreference
+    lateinit var tireTemperatureFrontRightPref: ListPreference
+    lateinit var tireTemperatureRearLeftPref: ListPreference
+    lateinit var tireTemperatureRearRightPref: ListPreference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferenceManager.sharedPreferencesName = null
@@ -51,6 +63,54 @@ class SettingsFragment : PreferenceFragmentCompat() {
         opacityPref = findPreference("gaugeOpacity")!!
         blurArtPref = findPreference("blurArtwork")!!
         darkenArtPref = findPreference("darkenArtwork")!!
+
+        // Initialize tire pressure PID selectors
+        tirePressureFrontLeftPref = findPreference("tirePressureFrontLeft")!!
+        tirePressureFrontRightPref = findPreference("tirePressureFrontRight")!!
+        tirePressureRearLeftPref = findPreference("tirePressureRearLeft")!!
+        tirePressureRearRightPref = findPreference("tirePressureRearRight")!!
+
+        // Initialize tire temperature PID selectors
+        tireTemperatureFrontLeftPref = findPreference("tireTemperatureFrontLeft")!!
+        tireTemperatureFrontRightPref = findPreference("tireTemperatureFrontRight")!!
+        tireTemperatureRearLeftPref = findPreference("tireTemperatureRearLeft")!!
+        tireTemperatureRearRightPref = findPreference("tireTemperatureRearRight")!!
+
+        // Set summary providers for tire PID selectors
+        tirePressureFrontLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tirePressureFrontRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tirePressureRearLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tirePressureRearRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tireTemperatureFrontLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tireTemperatureFrontRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tireTemperatureRearLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tireTemperatureRearRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+
+        // Add preference change listeners to reload tire HUD when PIDs change
+        val tirePreferenceChangeListener = { preference: androidx.preference.Preference, newValue: Any ->
+            // Save the preference value to SharedPreferences
+            val sharedPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+            val editor = sharedPrefs.edit()
+            editor.putString(preference.key, newValue as String)
+            editor.apply()
+
+            Timber.i("Saved tire preference ${preference.key} = $newValue")
+
+            // Broadcast tire preference change to reload tire HUD
+            androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(requireContext())
+                .sendBroadcast(android.content.Intent("TIRE_PREFERENCES_CHANGED"))
+            true
+        }
+
+        tirePressureFrontLeftPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tirePressureFrontRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tirePressureRearLeftPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tirePressureRearRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tireTemperatureFrontLeftPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tireTemperatureFrontRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tireTemperatureRearLeftPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+        tireTemperatureRearRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+
         themePref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         fontPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         backgroundPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()

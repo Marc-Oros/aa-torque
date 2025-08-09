@@ -27,8 +27,11 @@ class TireHudFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize UI with placeholder values - actual data will come from DashboardFragment
+        // Initialize UI with placeholder values
         initializePlaceholderData()
+
+        // Observe chart visibility to hide tire HUD when chart is shown
+        observeChartVisibility()
     }
 
     private fun initializePlaceholderData() {
@@ -135,5 +138,15 @@ class TireHudFragment : Fragment() {
     // Method to update tire data from DashboardFragment
     fun updateTireData(position: TirePosition, dataType: DataType, value: Double) {
         updateSingleTireData(position, dataType, value)
+    }
+
+    private fun observeChartVisibility() {
+        // Get the settings view model from the parent fragment (DashboardFragment)
+        val parentFragment = parentFragment as? DashboardFragment
+        parentFragment?.settingsViewModel?.chartVisible?.observe(viewLifecycleOwner) { chartVisible ->
+            // Hide tire HUD when chart is visible, show when gauges are visible
+            binding.root.visibility = if (chartVisible == true) View.GONE else View.VISIBLE
+            Timber.i("Chart visibility changed to $chartVisible, tire HUD visibility: ${if (chartVisible == true) "GONE" else "VISIBLE"}")
+        }
     }
 }
