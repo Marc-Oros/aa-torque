@@ -25,7 +25,7 @@ class TorqueRefresher {
     val cache = mutableMapOf<Int, HashMap<Int, TorqueData>>()
 
     companion object {
-        const val REFRESH_INTERVAL = 300L
+        const val REFRESH_INTERVAL = 5000L
     }
 
     fun populateQuery(pos: Int, screen: Int, query: Display): TorqueData {
