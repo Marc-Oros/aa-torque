@@ -20,11 +20,11 @@ def ghPackage = "aa-torque"
 
 android {
     namespace "com.aatorque.stats"
-    compileSdk 34
+    compileSdk 35
     defaultConfig {
         applicationId "com.aatorque.stats.internal_test"
         minSdkVersion 28
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode versionMajor * 1000 + versionMinor * 100 + versionPatch * 10
         versionName "${versionMajor}.${versionMinor}.${versionPatch}"
         vectorDrawables {
