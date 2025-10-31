@@ -25,7 +25,8 @@ class TorqueRefresher {
     val cache = mutableMapOf<Int, HashMap<Int, TorqueData>>()
 
     companion object {
-        const val REFRESH_INTERVAL = 5000L
+        const val REFRESH_INTERVAL = 300L
+        const val TIRE_REFRESH_INTERVAL = 10000L // 10 seconds
     }
 
     fun populateQuery(pos: Int, screen: Int, query: Display): TorqueData {
@@ -47,22 +48,27 @@ class TorqueRefresher {
     suspend fun makeExecutors(service: TorqueService) {
         var foundValid = false
         data.values.forEachIndexed { index, torqueData ->
-            val refreshOffset = (REFRESH_INTERVAL / data.size) * index
+            val refreshOffset = (REFRESH_INTERVAL / data.size) * index // Offset remains based on shorter interval for staggering
             if (torqueData.pid != null) {
                 foundValid = true
                 if (torqueData.refreshTimer == null) {
-                    Timber.i("Scheduled item in position $index with $refreshOffset delay")
-                    doRefresh(service, torqueData)
+                    val currentRefreshInterval = if (torqueData.display.label.contains("Tire Pressure") || torqueData.display.label.contains("Tire Temperature")) {
+                        TIRE_REFRESH_INTERVAL
+                    } else {
+                        REFRESH_INTERVAL
+                    }
+                    Timber.i("Scheduled item '${torqueData.display.label}' in position $index with $refreshOffset delay and $currentRefreshInterval ms interval")
+                    doRefresh(service, torqueData) // Initial refresh
                     torqueData.refreshTimer = executor.scheduleWithFixedDelay({
                         try {
                             doRefresh(service, torqueData)
                         } catch (e: Exception) {
-                            Timber.e("Refresh failed in pos $index", e)
+                            Timber.e("Refresh failed for '${torqueData.display.label}' in pos $index", e)
                         }
-                    }, refreshOffset, REFRESH_INTERVAL, TimeUnit.MILLISECONDS)
+                    }, refreshOffset, currentRefreshInterval, TimeUnit.MILLISECONDS)
                 }
             } else {
-                Timber.i("No reason to schedule item in position $index")
+                Timber.i("No reason to schedule item '${torqueData.display.label}' in position $index")
             }
         }
         conWatcher.emit(if (foundValid) conWatcher.value else ConnectStatus.SETUP_GAUGE)
@@ -80,7 +86,7 @@ class TorqueRefresher {
             val value = try {
                 ts.getPIDValuesAsDouble(arrayOf(torqueData.pid!!))[0]
             } catch (e: ArrayIndexOutOfBoundsException) {
-                Timber.e("Torque returned invalid data for ${torqueData.pid}")
+                Timber.e("Torque returned invalid data for ${torqueData.pid} ('${torqueData.display.label}')")
                 return@runIfConnected
             }
             torqueData.lastData = value
