@@ -88,11 +88,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         // Add preference change listeners to reload tire HUD when PIDs change
         val tirePreferenceChangeListener = { preference: androidx.preference.Preference, newValue: Any ->
-            // Save the preference value to SharedPreferences
-            val sharedPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
-            val editor = sharedPrefs.edit()
-            editor.putString(preference.key, newValue as String)
-            editor.apply()
+            updateDatastorePref { builder ->
+                when (preference.key) {
+                    "tirePressureFrontLeft" -> builder.setTirePressureFrontLeft(newValue as String)
+                    "tirePressureFrontRight" -> builder.setTirePressureFrontRight(newValue as String)
+                    "tirePressureRearLeft" -> builder.setTirePressureRearLeft(newValue as String)
+                    "tirePressureRearRight" -> builder.setTirePressureRearRight(newValue as String)
+                    "tireTemperatureFrontLeft" -> builder.setTireTemperatureFrontLeft(newValue as String)
+                    "tireTemperatureFrontRight" -> builder.setTireTemperatureFrontRight(newValue as String)
+                    "tireTemperatureRearLeft" -> builder.setTireTemperatureRearLeft(newValue as String)
+                    "tireTemperatureRearRight" -> builder.setTireTemperatureRearRight(newValue as String)
+                    else -> builder
+                }
+            }
 
             Timber.i("Saved tire preference ${preference.key} = $newValue")
 
@@ -229,6 +237,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 opacityPref.value = if (it.opacity == 0) 100 else it.opacity
                 blurArtPref.value = it.blurArt
                 darkenArtPref.value = it.darkenArt
+
+                // Sync tire preferences from DataStore to UI
+                tirePressureFrontLeftPref.value = it.tirePressureFrontLeft.ifEmpty { "none" }
+                tirePressureFrontRightPref.value = it.tirePressureFrontRight.ifEmpty { "none" }
+                tirePressureRearLeftPref.value = it.tirePressureRearLeft.ifEmpty { "none" }
+                tirePressureRearRightPref.value = it.tirePressureRearRight.ifEmpty { "none" }
+                tireTemperatureFrontLeftPref.value = it.tireTemperatureFrontLeft.ifEmpty { "none" }
+                tireTemperatureFrontRightPref.value = it.tireTemperatureFrontRight.ifEmpty { "none" }
+                tireTemperatureRearLeftPref.value = it.tireTemperatureRearLeft.ifEmpty { "none" }
+                tireTemperatureRearRightPref.value = it.tireTemperatureRearRight.ifEmpty { "none" }
             }
         }
         lifecycleScope.launch {

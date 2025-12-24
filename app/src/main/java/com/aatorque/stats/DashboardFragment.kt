@@ -518,46 +518,48 @@ open class DashboardFragment : AlbumArt() {
         // Clean up existing tire data first - this is crucial for preference updates
         cleanupExistingTireData()
 
-        // Load tire PID preferences from SharedPreferences
-        val sharedPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        // Load tire PID preferences from DataStore
+        lifecycleScope.launch {
+            val prefs = requireContext().dataStore.data.first()
 
-        val tirePressurePIDs = mapOf(
-            TireHudFragment.TirePosition.FRONT_LEFT to sharedPrefs.getString("tirePressureFrontLeft", ""),
-            TireHudFragment.TirePosition.FRONT_RIGHT to sharedPrefs.getString("tirePressureFrontRight", ""),
-            TireHudFragment.TirePosition.REAR_LEFT to sharedPrefs.getString("tirePressureRearLeft", ""),
-            TireHudFragment.TirePosition.REAR_RIGHT to sharedPrefs.getString("tirePressureRearRight", "")
-        )
+            val tirePressurePIDs = mapOf(
+                TireHudFragment.TirePosition.FRONT_LEFT to prefs.tirePressureFrontLeft.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tirePressureFrontRight.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.REAR_LEFT to prefs.tirePressureRearLeft.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.REAR_RIGHT to prefs.tirePressureRearRight.takeIf { it.isNotEmpty() }
+            )
 
-        val tireTemperaturePIDs = mapOf(
-            TireHudFragment.TirePosition.FRONT_LEFT to sharedPrefs.getString("tireTemperatureFrontLeft", ""),
-            TireHudFragment.TirePosition.FRONT_RIGHT to sharedPrefs.getString("tireTemperatureFrontRight", ""),
-            TireHudFragment.TirePosition.REAR_LEFT to sharedPrefs.getString("tireTemperatureRearLeft", ""),
-            TireHudFragment.TirePosition.REAR_RIGHT to sharedPrefs.getString("tireTemperatureRearRight", "")
-        )
+            val tireTemperaturePIDs = mapOf(
+                TireHudFragment.TirePosition.FRONT_LEFT to prefs.tireTemperatureFrontLeft.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tireTemperatureFrontRight.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.REAR_LEFT to prefs.tireTemperatureRearLeft.takeIf { it.isNotEmpty() },
+                TireHudFragment.TirePosition.REAR_RIGHT to prefs.tireTemperatureRearRight.takeIf { it.isNotEmpty() }
+            )
 
-        // Use the same index pattern as other displays but offset to avoid conflicts
-        val baseIndex = 100
-        var currentIndex = baseIndex
+            // Use the same index pattern as other displays but offset to avoid conflicts
+            val baseIndex = 100
+            var currentIndex = baseIndex
 
-        // Setup pressure displays using the same pattern as working displays
-        tirePressurePIDs.forEach { (position, pid) ->
-            if (!pid.isNullOrEmpty()) {
-                val display = createTireDisplay("${position.name} Tire Pressure", pid)
-                val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
+            // Setup pressure displays using the same pattern as working displays
+            tirePressurePIDs.forEach { (position, pid) ->
+                if (!pid.isNullOrEmpty()) {
+                    val display = createTireDisplay("${position.name} Tire Pressure", pid)
+                    val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
 
-                // Use the same setup pattern as TorqueDisplay.setupElement()
-                tireHudFragment.setupTireData(position, TireHudFragment.DataType.PRESSURE, torqueData)
+                    // Use the same setup pattern as TorqueDisplay.setupElement()
+                    tireHudFragment.setupTireData(position, TireHudFragment.DataType.PRESSURE, torqueData)
+                }
             }
-        }
 
-        // Setup temperature displays using the same pattern as working displays
-        tireTemperaturePIDs.forEach { (position, pid) ->
-            if (!pid.isNullOrEmpty()) {
-                val display = createTireDisplay("${position.name} Tire Temperature", pid)
-                val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
+            // Setup temperature displays using the same pattern as working displays
+            tireTemperaturePIDs.forEach { (position, pid) ->
+                if (!pid.isNullOrEmpty()) {
+                    val display = createTireDisplay("${position.name} Tire Temperature", pid)
+                    val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
 
-                // Use the same setup pattern as TorqueDisplay.setupElement()
-                tireHudFragment.setupTireData(position, TireHudFragment.DataType.TEMPERATURE, torqueData)
+                    // Use the same setup pattern as TorqueDisplay.setupElement()
+                    tireHudFragment.setupTireData(position, TireHudFragment.DataType.TEMPERATURE, torqueData)
+                }
             }
         }
     }

@@ -69,4 +69,12 @@ message UserPreference {
   uint32 opacity = 25;
   uint32 blurArt = 26;
   uint32 darkenArt = 27;
+  string tirePressureFrontLeft = 28;
+  string tirePressureFrontRight = 29;
+  string tirePressureRearLeft = 30;
+  string tirePressureRearRight = 31;
+  string tireTemperatureFrontLeft = 32;
+  string tireTemperatureFrontRight = 33;
+  string tireTemperatureRearLeft = 34;
+  string tireTemperatureRearRight = 35;
 }
