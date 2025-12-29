@@ -346,6 +346,13 @@ open class DashboardFragment : AlbumArt() {
         return rootView
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        lifecycleScope.launch {
+            viewReady.countDown()
+        }
+    }
+
     fun setScreen(direction: Int) {
         if (screensAnimating) return
         screensAnimating = true
@@ -415,9 +422,6 @@ open class DashboardFragment : AlbumArt() {
 
     override fun onStart() {
         super.onStart()
-        lifecycleScope.launch {
-            viewReady.countDown()
-        }
     }
 
     override fun onStop() {
@@ -508,58 +512,49 @@ open class DashboardFragment : AlbumArt() {
         settingsViewModel.setFont(font)
     }
 
-    private fun updateTireHudData(screenIndex: Int) {
-        // Check if TireHudFragment is properly initialized
+    private suspend fun updateTireHudData(screenIndex: Int) {
         if (!::tireHudFragment.isInitialized) {
-            Timber.w("TireHudFragment not initialized, skipping tire data update")
             return
         }
 
-        // Clean up existing tire data first - this is crucial for preference updates
-        cleanupExistingTireData()
+        val prefs = requireContext().dataStore.data.first()
 
-        // Load tire PID preferences from DataStore
-        lifecycleScope.launch {
-            val prefs = requireContext().dataStore.data.first()
+        val tirePressurePIDs = mapOf(
+            TireHudFragment.TirePosition.FRONT_LEFT to prefs.tirePressureFrontLeft.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tirePressureFrontRight.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.REAR_LEFT to prefs.tirePressureRearLeft.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.REAR_RIGHT to prefs.tirePressureRearRight.takeIf { it.isNotEmpty() }
+        )
 
-            val tirePressurePIDs = mapOf(
-                TireHudFragment.TirePosition.FRONT_LEFT to prefs.tirePressureFrontLeft.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tirePressureFrontRight.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.REAR_LEFT to prefs.tirePressureRearLeft.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.REAR_RIGHT to prefs.tirePressureRearRight.takeIf { it.isNotEmpty() }
-            )
+        val tireTemperaturePIDs = mapOf(
+            TireHudFragment.TirePosition.FRONT_LEFT to prefs.tireTemperatureFrontLeft.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tireTemperatureFrontRight.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.REAR_LEFT to prefs.tireTemperatureRearLeft.takeIf { it.isNotEmpty() },
+            TireHudFragment.TirePosition.REAR_RIGHT to prefs.tireTemperatureRearRight.takeIf { it.isNotEmpty() }
+        )
 
-            val tireTemperaturePIDs = mapOf(
-                TireHudFragment.TirePosition.FRONT_LEFT to prefs.tireTemperatureFrontLeft.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.FRONT_RIGHT to prefs.tireTemperatureFrontRight.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.REAR_LEFT to prefs.tireTemperatureRearLeft.takeIf { it.isNotEmpty() },
-                TireHudFragment.TirePosition.REAR_RIGHT to prefs.tireTemperatureRearRight.takeIf { it.isNotEmpty() }
-            )
+        val baseIndex = 100
+        var currentIndex = baseIndex
 
-            // Use the same index pattern as other displays but offset to avoid conflicts
-            val baseIndex = 100
-            var currentIndex = baseIndex
-
-            // Setup pressure displays using the same pattern as working displays
-            tirePressurePIDs.forEach { (position, pid) ->
-                if (!pid.isNullOrEmpty()) {
-                    val display = createTireDisplay("${position.name} Tire Pressure", pid)
-                    val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
-
-                    // Use the same setup pattern as TorqueDisplay.setupElement()
+        tirePressurePIDs.forEach { (position, pid) ->
+            if (!pid.isNullOrEmpty()) {
+                val display = createTireDisplay("${position.name} Tire Pressure", pid)
+                if (torqueRefresher.hasChanged(currentIndex, display)) {
+                    val torqueData = torqueRefresher.populateQuery(currentIndex, screenIndex, display)
                     tireHudFragment.setupTireData(position, TireHudFragment.DataType.PRESSURE, torqueData)
                 }
+                currentIndex++
             }
+        }
 
-            // Setup temperature displays using the same pattern as working displays
-            tireTemperaturePIDs.forEach { (position, pid) ->
-                if (!pid.isNullOrEmpty()) {
-                    val display = createTireDisplay("${position.name} Tire Temperature", pid)
-                    val torqueData = torqueRefresher.populateQuery(currentIndex++, screenIndex, display)
-
-                    // Use the same setup pattern as TorqueDisplay.setupElement()
+        tireTemperaturePIDs.forEach { (position, pid) ->
+            if (!pid.isNullOrEmpty()) {
+                val display = createTireDisplay("${position.name} Tire Temperature", pid)
+                if (torqueRefresher.hasChanged(currentIndex, display)) {
+                    val torqueData = torqueRefresher.populateQuery(currentIndex, screenIndex, display)
                     tireHudFragment.setupTireData(position, TireHudFragment.DataType.TEMPERATURE, torqueData)
                 }
+                currentIndex++
             }
         }
     }
@@ -570,16 +565,5 @@ open class DashboardFragment : AlbumArt() {
             .setPid(pid)
             .setDisabled(false)
             .build()
-    }
-
-    private fun cleanupExistingTireData() {
-        // Clean up tire data in the range 100-115 (same range used in updateTireHudData)
-        for (index in 100..115) {
-            torqueRefresher.data[index]?.stopRefreshing(true)
-            torqueRefresher.data.remove(index)
-        }
-
-        // Clear tire data from the TireHudFragment
-        tireHudFragment.clearAllTireData()
     }
 }
