@@ -114,25 +114,25 @@
         <com.aatorque.prefs.TirePIDPreference
             android:key="tirePressureFrontLeft"
             android:title="@string/tire_pressure_front_left"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_pressure_front_left" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tirePressureFrontRight"
             android:title="@string/tire_pressure_front_right"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_pressure_front_right" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tirePressureRearLeft"
             android:title="@string/tire_pressure_rear_left"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_pressure_rear_left" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tirePressureRearRight"
             android:title="@string/tire_pressure_rear_right"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_pressure_rear_right" />
 
     </PreferenceCategory>
@@ -144,25 +144,25 @@
         <com.aatorque.prefs.TirePIDPreference
             android:key="tireTemperatureFrontLeft"
             android:title="@string/tire_temperature_front_left"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_temperature_front_left" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tireTemperatureFrontRight"
             android:title="@string/tire_temperature_front_right"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_temperature_front_right" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tireTemperatureRearLeft"
             android:title="@string/tire_temperature_rear_left"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_temperature_rear_left" />
 
         <com.aatorque.prefs.TirePIDPreference
             android:key="tireTemperatureRearRight"
             android:title="@string/tire_temperature_rear_right"
-            android:persistent="true"
+            android:persistent="false"
             app:dialogTitle="@string/tire_temperature_rear_right" />
 
     </PreferenceCategory>

@@ -239,14 +239,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 darkenArtPref.value = it.darkenArt
 
                 // Sync tire preferences from DataStore to UI
-                tirePressureFrontLeftPref.value = it.tirePressureFrontLeft.ifEmpty { "none" }
-                tirePressureFrontRightPref.value = it.tirePressureFrontRight.ifEmpty { "none" }
-                tirePressureRearLeftPref.value = it.tirePressureRearLeft.ifEmpty { "none" }
-                tirePressureRearRightPref.value = it.tirePressureRearRight.ifEmpty { "none" }
-                tireTemperatureFrontLeftPref.value = it.tireTemperatureFrontLeft.ifEmpty { "none" }
-                tireTemperatureFrontRightPref.value = it.tireTemperatureFrontRight.ifEmpty { "none" }
-                tireTemperatureRearLeftPref.value = it.tireTemperatureRearLeft.ifEmpty { "none" }
-                tireTemperatureRearRightPref.value = it.tireTemperatureRearRight.ifEmpty { "none" }
+                tirePressureFrontLeftPref.value = it.tirePressureFrontLeft
+                tirePressureFrontRightPref.value = it.tirePressureFrontRight
+                tirePressureRearLeftPref.value = it.tirePressureRearLeft
+                tirePressureRearRightPref.value = it.tirePressureRearRight
+                tireTemperatureFrontLeftPref.value = it.tireTemperatureFrontLeft
+                tireTemperatureFrontRightPref.value = it.tireTemperatureFrontRight
+                tireTemperatureRearLeftPref.value = it.tireTemperatureRearLeft
+                tireTemperatureRearRightPref.value = it.tireTemperatureRearRight
             }
         }
         lifecycleScope.launch {
