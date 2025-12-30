@@ -14,6 +14,7 @@ class TirePIDPreference(context: Context, attrs: AttributeSet) : ListPreference(
 
     private var torqueService: TorqueServiceWrapper? = null
     private var mBound = false
+    private var forceReload = false
 
     private val torqueConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -45,7 +46,7 @@ class TirePIDPreference(context: Context, attrs: AttributeSet) : ListPreference(
 
     private fun loadPIDList() {
         torqueService?.let { service ->
-            service.loadPidInformation(false) { pids ->
+            service.loadPidInformation(forceReload) { pids ->
                 // Use Handler.post to safely update UI from background thread
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                     try {
@@ -66,11 +67,33 @@ class TirePIDPreference(context: Context, attrs: AttributeSet) : ListPreference(
                         this.entryValues = entryValues.toTypedArray()
 
                         Timber.i("Loaded ${pids.size} PIDs for tire pressure/temperature selector")
+                        forceReload = false // Reset flag after use
                     } catch (e: Exception) {
                         Timber.e(e, "Failed to update tire PID preference entries")
                     }
                 }
             }
         }
+    }
+
+    fun refreshPids() {
+        Timber.i("Refreshing PIDs for tire preference...")
+
+        // Set flag to force reload on next connection
+        forceReload = true
+
+        // Unbind and rebind to force fresh PID data
+        if (mBound) {
+            try {
+                context.unbindService(torqueConnection)
+                mBound = false
+                torqueService = null
+            } catch (e: IllegalArgumentException) {
+                Timber.w(e, "Failed to unbind during refresh")
+            }
+        }
+
+        // Rebind to service using the same torqueConnection
+        mBound = TorqueServiceWrapper.runStartIntent(context, torqueConnection)
     }
 }

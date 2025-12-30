@@ -6,11 +6,14 @@ import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.os.IBinder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -32,6 +35,7 @@ import com.aatorque.stats.App
 import com.aatorque.stats.BuildConfig
 import com.aatorque.stats.CreditsFragment
 import com.aatorque.stats.R
+import com.aatorque.stats.TorqueServiceWrapper
 import com.google.android.material.snackbar.Snackbar
 import com.google.protobuf.InvalidProtocolBufferException
 import kotlinx.coroutines.Dispatchers
@@ -151,6 +155,44 @@ class SettingsActivity : AppCompatActivity(),
 
             R.id.action_copy_logs -> {
                 logsToClipboard()
+                true
+            }
+
+            R.id.action_refresh_pids -> {
+                // Find any SettingsPIDFragment in the fragment manager and refresh it
+                val allFragments = supportFragmentManager.fragments
+                val pidFragments = allFragments.filterIsInstance<SettingsPIDFragment>()
+
+                // Also find TirePIDPreference instances in SettingsFragment
+                val settingsFragment = allFragments.firstOrNull { it is SettingsFragment } as? SettingsFragment
+                val tirePreferences = mutableListOf<TirePIDPreference>()
+
+                if (settingsFragment != null) {
+                    // Find all TirePIDPreference instances
+                    val keys = listOf(
+                        "tirePressureFrontLeft", "tirePressureFrontRight",
+                        "tirePressureRearLeft", "tirePressureRearRight",
+                        "tireTemperatureFrontLeft", "tireTemperatureFrontRight",
+                        "tireTemperatureRearLeft", "tireTemperatureRearRight"
+                    )
+                    keys.forEach { key ->
+                        settingsFragment.findPreference<TirePIDPreference>(key)?.let {
+                            tirePreferences.add(it)
+                        }
+                    }
+                }
+
+                if (pidFragments.isNotEmpty() || tirePreferences.isNotEmpty()) {
+                    // Refresh all PID fragments and tire preferences
+                    pidFragments.forEach { it.refreshPidList() }
+                    tirePreferences.forEach { it.refreshPids() }
+
+                    Toast.makeText(this, "Refreshing PIDs...", Toast.LENGTH_SHORT).show()
+                } else {
+                    // No PID fragment or tire preferences found, do global refresh
+                    Toast.makeText(this, "Refreshing PIDs in background...", Toast.LENGTH_SHORT).show()
+                    refreshPidsGlobally()
+                }
                 true
             }
 
@@ -449,6 +491,40 @@ class SettingsActivity : AppCompatActivity(),
         val logs = (application as App).logTree.logToString()
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("AA Torque Log", logs.joinToString("\n")))
+    }
+
+    private fun refreshPidsGlobally() {
+        // Create a temporary connection to TorqueServiceWrapper to force PID refresh
+        lifecycleScope.launch(Dispatchers.Main) {
+            val serviceConnection = object : ServiceConnection {
+                override fun onServiceConnected(className: ComponentName, service: IBinder) {
+                    val torqueService = (service as TorqueServiceWrapper.LocalBinder).getService()
+                    // Force reload PIDs
+                    torqueService.loadPidInformation(true) { pids ->
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@SettingsActivity,
+                                getString(R.string.pids_refreshed, pids.size),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            Timber.i("PIDs refreshed globally: ${pids.size}")
+                        }
+                    }
+                    // Unbind after initiating refresh
+                    try {
+                        unbindService(this)
+                    } catch (e: IllegalArgumentException) {
+                        Timber.w(e, "Failed to unbind temporary service connection")
+                    }
+                }
+
+                override fun onServiceDisconnected(arg0: ComponentName) {
+                    // Service disconnected
+                }
+            }
+
+            TorqueServiceWrapper.runStartIntent(this@SettingsActivity, serviceConnection)
+        }
     }
 
 

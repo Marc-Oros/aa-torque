@@ -58,10 +58,13 @@ class SettingsPIDFragment:  PreferenceFragmentCompat() {
 
     var torqueService: TorqueServiceWrapper? = null
 
+    private var forceReload = false
+
     var torqueConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             torqueService = (service as TorqueServiceWrapper.LocalBinder).getService()
-            torqueService!!.loadPidInformation(false) {
+            // Use forceReload flag to determine if we should force refresh
+            torqueService!!.loadPidInformation(forceReload) {
                 pids ->
                 requireActivity().runOnUiThread {
                     val valuesQuery = pids.map { "torque_${it.first}" }.toTypedArray()
@@ -70,6 +73,7 @@ class SettingsPIDFragment:  PreferenceFragmentCompat() {
                     pidPref.entries = arrayOf(getString(R.string.element_none)) + names
                     prefCat.isEnabled = true
                     prefCat.summary = null
+                    forceReload = false // Reset flag after use
                 }
             }
         }
@@ -225,6 +229,31 @@ class SettingsPIDFragment:  PreferenceFragmentCompat() {
         }
     }
 
+    fun refreshPidList() {
+        Timber.i("Refreshing PID list - unbinding and rebinding to Torque service...")
+
+        // Disable UI while refreshing
+        prefCat.isEnabled = false
+        prefCat.summary = getString(R.string.torque_refreshing)
+
+        // Set flag to force reload on next connection
+        forceReload = true
+
+        // Unbind from current service
+        if (mBound) {
+            try {
+                requireContext().unbindService(torqueConnection)
+                torqueService = null
+                mBound = false
+            } catch (e: IllegalArgumentException) {
+                Timber.w(e, "Failed to unbind service during refresh")
+            }
+        }
+
+        // Rebind to service using the same torqueConnection
+        mBound = TorqueServiceWrapper.runStartIntent(requireContext(), torqueConnection)
+    }
+
     override fun onPause() {
         super.onPause()
         if (pidPref.value != null && mBound) {
@@ -307,7 +336,7 @@ class SettingsPIDFragment:  PreferenceFragmentCompat() {
             try {
                 requireContext().unbindService(torqueConnection)
             }catch(e: IllegalArgumentException) {
-                Timber.e("Failed to unbind service", e)
+                Timber.e(e, "Failed to unbind service")
             }
             mBound = false
         }

@@ -106,6 +106,9 @@
     <string name="pidShowLabel">Show Label</string>
     <string name="icon">Icon</string>
     <string name="torque_waiting">Waiting for Torque to become available</string>
+    <string name="torque_refreshing">Refreshing PID list…</string>
+    <string name="refresh_pids">Refresh PID List</string>
+    <string name="pids_refreshed">%d PIDs loaded from Torque</string>
     <string name="min_value">Minimum value</string>
     <string name="max_value">Maximum value</string>
     <string name="num_screens">Number of dashboards to display</string>
