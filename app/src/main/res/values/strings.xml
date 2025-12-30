@@ -207,4 +207,8 @@
     <string name="tire_temperature_front_right">Front Right Tire Temperature</string>
     <string name="tire_temperature_rear_left">Rear Left Tire Temperature</string>
     <string name="tire_temperature_rear_right">Rear Right Tire Temperature</string>
+    <string name="launch_torque_pro">Launch Torque Pro</string>
+    <string name="launching_torque_pro">Launching Torque Pro…</string>
+    <string name="torque_pro_not_installed">Torque Pro is not installed</string>
+    <string name="torque_pro_launch_failed">Failed to launch Torque Pro</string>
 </resources>

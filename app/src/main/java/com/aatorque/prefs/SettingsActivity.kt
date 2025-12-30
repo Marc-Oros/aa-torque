@@ -159,6 +159,11 @@ class SettingsActivity : AppCompatActivity(),
                 true
             }
 
+            R.id.action_launch_torque -> {
+                launchTorquePro()
+                true
+            }
+
             R.id.force_update -> {
                 lifecycleScope.launch(Dispatchers.IO) {
                     if (!checkUpdate(true)) {
@@ -185,6 +190,23 @@ class SettingsActivity : AppCompatActivity(),
 
     private fun exportFile() {
         exportFileLauncher.launch("")
+    }
+
+    private fun launchTorquePro() {
+        val pkg = "org.prowl.torque"
+        try {
+            val launch = packageManager.getLaunchIntentForPackage(pkg)
+            if (launch != null) {
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launch)
+                Toast.makeText(this, R.string.launching_torque_pro, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, R.string.torque_pro_not_installed, Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to launch Torque Pro")
+            Toast.makeText(this, R.string.torque_pro_launch_failed, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun launchFragment(
@@ -437,4 +459,3 @@ class SettingsActivity : AppCompatActivity(),
         const val EXPORT_MIME = "application/octet-stream"
     }
 }
-
