@@ -15,7 +15,6 @@ import kotlin.concurrent.withLock
 typealias PidInfo = List<Pair<String, List<String>>>
 class TorqueServiceWrapper: Service() {
     private val binder = LocalBinder()
-    var wasStartAttempted = false
     var torqueBindSucceeded = false
     var torqueService: ITorqueService? = null
     val onConnect = ArrayList<(ITorqueService) -> Unit>()
@@ -24,10 +23,7 @@ class TorqueServiceWrapper: Service() {
 
     override fun onCreate() {
         super.onCreate()
-        if (!wasStartAttempted) {
-            torqueBindSucceeded = startTorque()
-            wasStartAttempted = true
-        }
+        torqueBindSucceeded = startTorque()
     }
 
     override fun onDestroy() {
@@ -103,13 +99,9 @@ class TorqueServiceWrapper: Service() {
          */
         override fun onServiceConnected(arg0: ComponentName, service: IBinder) {
             val svc = ITorqueService.Stub.asInterface(service)
-            conLock.withLock {
-                for (funt in onConnect) {
-                    funt(svc)
-                }
-                onConnect.clear()
-            }
             torqueService = svc
+            val listeners = conLock.withLock { onConnect.toList().also { onConnect.clear() } }
+            listeners.forEach { it(svc) }
         }
 
         /**

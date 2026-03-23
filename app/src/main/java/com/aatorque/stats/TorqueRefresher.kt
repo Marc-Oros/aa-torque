@@ -3,11 +3,8 @@ import android.os.Handler
 import android.os.Looper
 import com.aatorque.datastore.Display
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.runInterruptible
 import timber.log.Timber
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit

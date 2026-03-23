@@ -16,9 +16,7 @@ import androidx.preference.SeekBarPreference
 import com.aatorque.datastore.UserPreference
 import com.aatorque.stats.NotiService
 import com.aatorque.stats.R
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -38,16 +36,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
     lateinit var blurArtPref: SeekBarPreference
 
     // Tire pressure PID selectors
-    lateinit var tirePressureFrontLeftPref: ListPreference
-    lateinit var tirePressureFrontRightPref: ListPreference
-    lateinit var tirePressureRearLeftPref: ListPreference
-    lateinit var tirePressureRearRightPref: ListPreference
+    lateinit var tirePressureFrontLeftPref: TirePIDPreference
+    lateinit var tirePressureFrontRightPref: TirePIDPreference
+    lateinit var tirePressureRearLeftPref: TirePIDPreference
+    lateinit var tirePressureRearRightPref: TirePIDPreference
 
     // Tire temperature PID selectors
-    lateinit var tireTemperatureFrontLeftPref: ListPreference
-    lateinit var tireTemperatureFrontRightPref: ListPreference
-    lateinit var tireTemperatureRearLeftPref: ListPreference
-    lateinit var tireTemperatureRearRightPref: ListPreference
+    lateinit var tireTemperatureFrontLeftPref: TirePIDPreference
+    lateinit var tireTemperatureFrontRightPref: TirePIDPreference
+    lateinit var tireTemperatureRearLeftPref: TirePIDPreference
+    lateinit var tireTemperatureRearRightPref: TirePIDPreference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -271,9 +269,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
+    @Suppress("UNUSED_PARAMETER")
     private fun updateDatastorePref(updateBuilder: (obj: UserPreference.Builder) -> UserPreference.Builder) {
-        GlobalScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             requireContext().dataStore.updateData { currentSettings ->
                 updateBuilder(currentSettings.toBuilder()).build()
             }

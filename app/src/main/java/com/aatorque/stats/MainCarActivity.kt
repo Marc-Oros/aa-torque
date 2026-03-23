@@ -9,8 +9,10 @@ import com.aatorque.prefs.dataStore
 import com.aatorque.prefs.mapTheme
 import com.aatorque.stats.ListMenuAdapter.MenuCallbacks
 import com.google.android.apps.auto.sdk.CarActivity
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -25,9 +27,9 @@ class MainCarActivity : CarActivity() {
     private val mMenuCallbacks: MenuCallbacks = object : MenuCallbacks {
         override fun onMenuItemClicked(name: String) {
             when (name) {
-                MENU_DASHBOARD -> switchToFragment(FRAGMENT_CAR)
-                MENU_STOPWATCH -> switchToFragment(FRAGMENT_STOPWATCH)
-                MENU_CREDITS -> switchToFragment(FRAGMENT_CREDITS)
+                FRAGMENT_DASHBOARD -> switchToFragment(FRAGMENT_DASHBOARD)
+                FRAGMENT_STOPWATCH -> switchToFragment(FRAGMENT_STOPWATCH)
+                FRAGMENT_CREDITS -> switchToFragment(FRAGMENT_CREDITS)
             }
         }
 
@@ -39,6 +41,7 @@ class MainCarActivity : CarActivity() {
     private var inBg = false
     private var awaitingTheme: String? = null
     private var lastTheme: String? = null
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (event?.action == KeyEvent.ACTION_DOWN) {
@@ -51,13 +54,12 @@ class MainCarActivity : CarActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(bundle: Bundle?) {
         super.onCreate(bundle)
         val data = runBlocking {
             dataStore.data.first()
         }
-        GlobalScope.launch {
+        activityScope.launch {
             dataStore.data.map {
                 it.selectedTheme
             }.distinctUntilChanged().drop(1).collect(
@@ -66,29 +68,18 @@ class MainCarActivity : CarActivity() {
         }
         setLocalTheme(data.selectedTheme)
         setContentView(R.layout.activity_car_main)
-        /*
-        CarUiController carUiController = getCarUiController();
-        //force night mode
-        carUiController.getStatusBarController().setDayNightStyle(DayNightStyle.FORCE_NIGHT);
-*/
         val fragmentManager = supportFragmentManager
 
-        //set fragments:
         val carfragment: CarFragment = DashboardFragment()
         fragmentManager.beginTransaction()
-            .add(R.id.fragment_container, carfragment, FRAGMENT_CAR)
+            .add(R.id.fragment_container, carfragment, FRAGMENT_DASHBOARD)
             .detach(carfragment)
             .commitNow()
-        var initialFragmentTag: String? = FRAGMENT_CAR
+        var initialFragmentTag: String? = FRAGMENT_DASHBOARD
         if (bundle != null && bundle.containsKey(CURRENT_FRAGMENT_KEY)) {
             initialFragmentTag = bundle.getString(CURRENT_FRAGMENT_KEY)
         }
         switchToFragment(initialFragmentTag)
-        /* todo: maybe restore this
-        MenuController menuController = getCarUiController().getMenuController();
-        if (!preferences.getBoolean("rotaryInput", false)) {
-            menuController.showMenuButton();
-        } */
         val statusBarController = carUiController.statusBarController
         carfragment.setupStatusBar(statusBarController)
         setIgnoreConfigChanges(0xFFFF)
@@ -119,10 +110,10 @@ class MainCarActivity : CarActivity() {
                 mCurrentFragmentTag
             )
         if (currentFragment != null) {
-            val trans = manager.beginTransaction().detach(currentFragment)
-            if (mCurrentFragmentTag == MENU_DASHBOARD) {
+            val trans = manager.beginTransaction()
+            if (mCurrentFragmentTag == FRAGMENT_DASHBOARD) {
                 trans.remove(currentFragment)
-                    .add(R.id.fragment_container, DashboardFragment(), FRAGMENT_CAR)
+                    .add(R.id.fragment_container, DashboardFragment(), FRAGMENT_DASHBOARD)
             } else {
                 trans.detach(currentFragment).attach(currentFragment)
             }
@@ -170,14 +161,16 @@ class MainCarActivity : CarActivity() {
         awaitingTheme = null
     }
 
+    override fun onDestroy() {
+        activityScope.cancel()
+        super.onDestroy()
+    }
+
     companion object {
-        //menu stuff//
-        const val MENU_DASHBOARD = "dashboard"
-        const val MENU_CREDITS = "credits"
-        const val MENU_STOPWATCH = "stopwatch"
-        private const val FRAGMENT_CAR = "dashboard"
-        private const val FRAGMENT_CREDITS = "credits"
-        private const val FRAGMENT_STOPWATCH = "stopwatch"
+        const val FRAGMENT_DASHBOARD = "dashboard"
+        const val FRAGMENT_CREDITS = "credits"
+        const val FRAGMENT_STOPWATCH = "stopwatch"
         private const val CURRENT_FRAGMENT_KEY = "app_current_fragment"
     }
 }
+

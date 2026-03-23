@@ -63,7 +63,7 @@ open class DashboardFragment : AlbumArt() {
     var gaugeViews = arrayOfNulls<FragmentContainerView>(3)
 
     private var screensAnimating = false
-    private var mStarted = false
+    private var localReceiver: BroadcastReceiver? = null
     lateinit var binding: FragmentDashboardBinding
     lateinit var torqueChart: TorqueChart
     lateinit var settingsViewModel: SettingsViewModel
@@ -271,8 +271,7 @@ open class DashboardFragment : AlbumArt() {
             addAction("KEY_DOWN")
             addAction("TIRE_PREFERENCES_CHANGED") // Listen for tire preference changes
         }
-        LocalBroadcastManager.getInstance(requireContext())
-            .registerReceiver(object : BroadcastReceiver() {
+        localReceiver = object : BroadcastReceiver() {
                 override fun onReceive(p0: Context?, intent: Intent?) {
                     when (intent?.action) {
                         "KEY_DOWN" -> {
@@ -305,7 +304,9 @@ open class DashboardFragment : AlbumArt() {
                         }
                     }
                 }
-            }, filter)
+            }
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(localReceiver!!, filter)
         val gestureDetector =
             GestureDetector(rootView.context, object : GestureDetector.SimpleOnGestureListener() {
                 override fun onFling(
@@ -426,7 +427,6 @@ open class DashboardFragment : AlbumArt() {
 
     override fun onStop() {
         super.onStop()
-        mStarted = false
     }
 
     override fun onPause() {
@@ -438,6 +438,14 @@ open class DashboardFragment : AlbumArt() {
     override fun onDestroy() {
         super.onDestroy()
         torqueService.onDestroy(requireContext())
+    }
+
+    override fun onDestroyView() {
+        localReceiver?.let {
+            context?.let { ctx -> LocalBroadcastManager.getInstance(ctx).unregisterReceiver(it) }
+        }
+        localReceiver = null
+        super.onDestroyView()
     }
 
     override suspend fun onMediaChanged(medadata: MediaMetadata?) {

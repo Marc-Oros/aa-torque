@@ -16,7 +16,7 @@ import timber.log.Timber
 
 abstract class AlbumArt : CarFragment() {
 
-    val registed = HashMap<Int, () -> Unit>()
+    val registered = HashMap<Int, () -> Unit>()
     private val updateChannel = MutableSharedFlow<MediaMetadata?>()
 
     override fun onResume() {
@@ -63,7 +63,7 @@ abstract class AlbumArt : CarFragment() {
         val found = mediaControllers.map {
             val token = it.sessionToken
             val code = token.hashCode()
-            if (!registed.containsKey(code)) {
+            if (!registered.containsKey(code)) {
                 val callback = object : MediaController.Callback() {
                     override fun onMetadataChanged(metadata: MediaMetadata?) {
                         super.onMetadataChanged(metadata)
@@ -73,9 +73,9 @@ abstract class AlbumArt : CarFragment() {
                     }
                 }
                 it.registerCallback(callback)
-                registed[code] = {
+                registered[code] = {
                     it.unregisterCallback(callback)
-                    registed.remove(code)
+                    registered.remove(code)
                 }
                 if (isActive(it.playbackState)) {
                     lifecycleScope.launch {
@@ -86,7 +86,7 @@ abstract class AlbumArt : CarFragment() {
             }
             code
         }.toSet()
-        registed.filterNot { found.contains(it.key) }.forEach {
+        registered.filterNot { found.contains(it.key) }.forEach {
             it.value()
         }
     }

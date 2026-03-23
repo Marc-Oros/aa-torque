@@ -69,12 +69,10 @@ class TorqueService {
                     svc.setDebugTestMode(!svc.isConnectedToECU)
                 }
                 torqueService = svc
-                conLock.withLock {
-                    for (funt in onConnect) {
-                        funt(svc)
-                    }
-                    onConnect.clear()
-                }
+                // Snapshot the list outside the lock before invoking — avoids holding
+                // conLock while calling out, which could cause deadlocks.
+                val listeners = conLock.withLock { onConnect.toList().also { onConnect.clear() } }
+                listeners.forEach { it(svc) }
             } catch (e: DeadObjectException) {
                 Timber.e(e, "Disconnected from torque service during connect")
                 torqueService = null
@@ -101,16 +99,12 @@ class TorqueService {
         }
     }
 
-    private fun canAttemptBind(nowMs: Long): Boolean {
-        return nowMs - lastBindAttemptAt >= RECONNECT_MIN_GAP_MS
-    }
-
     private fun bindNow(context: Context): Boolean {
         if (hasBound || isConnecting) {
             return hasBound
         }
         val now = SystemClock.elapsedRealtime()
-        if (!canAttemptBind(now)) {
+        if (now - lastBindAttemptAt < RECONNECT_MIN_GAP_MS) {
             scheduleReconnect()
             return false
         }
