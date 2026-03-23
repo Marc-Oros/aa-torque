@@ -24,6 +24,7 @@ class TorqueService {
 
     var torqueService: ITorqueService? = null
     val onConnect = ArrayList<(ITorqueService) -> Unit>()
+    val onDisconnect = ArrayList<() -> Unit>()
     val conLock = ReentrantLock()
     var hasBound = false
     private var isConnecting = false
@@ -94,6 +95,8 @@ class TorqueService {
             torqueService = null
             hasBound = false
             isConnecting = false
+            val listeners = conLock.withLock { onDisconnect.toList() }
+            listeners.forEach { it() }
             scheduleReconnect()
         }
     }
@@ -162,12 +165,12 @@ class TorqueService {
         isConnecting = false
         torqueService = null
         appContext = null
+        conLock.withLock {
+            onConnect.clear()
+            onDisconnect.clear()
+        }
     }
 
-    fun requestQuit(context: Context) {
-        context.sendBroadcast(Intent("org.prowl.torque.REQUEST_TORQUE_QUIT"))
-        Timber.i("Torque stop")
-    }
     fun startTorque(context: Context): Boolean {
         return bindNow(context)
     }

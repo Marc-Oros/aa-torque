@@ -20,7 +20,6 @@ class TorqueServiceWrapper: Service() {
     var torqueService: ITorqueService? = null
     val onConnect = ArrayList<(ITorqueService) -> Unit>()
     var pids: PidInfo? = null
-    var connectCount = 0
     val conLock = ReentrantLock()
 
     override fun onCreate() {
@@ -29,13 +28,11 @@ class TorqueServiceWrapper: Service() {
             torqueBindSucceeded = startTorque()
             wasStartAttempted = true
         }
-        connectCount++
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        connectCount--
-        if (connectCount == 0 && torqueBindSucceeded) {
+        if (torqueBindSucceeded) {
             try {
                 unbindService(torqueConnection)
             } catch (e: IllegalArgumentException) {
@@ -80,9 +77,6 @@ class TorqueServiceWrapper: Service() {
         fun getService(): TorqueServiceWrapper = this@TorqueServiceWrapper
     }
 
-    fun isAvailable(): Boolean {
-        return torqueService != null
-    }
 
     fun addConnectCallback(func: (ITorqueService) -> Unit): TorqueServiceWrapper {
         if (torqueService == null) {

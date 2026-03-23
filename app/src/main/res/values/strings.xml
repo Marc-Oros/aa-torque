@@ -214,4 +214,5 @@
     <string name="launching_torque_pro">Launching Torque Pro…</string>
     <string name="torque_pro_not_installed">Torque Pro is not installed</string>
     <string name="torque_pro_launch_failed">Failed to launch Torque Pro</string>
+    <string name="torque_not_running_warning">Torque Pro is not running. Settings and PID configuration require Torque to be active.</string>
 </resources>
