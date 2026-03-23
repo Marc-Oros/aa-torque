@@ -1,6 +1,5 @@
 package com.aatorque.stats
 
-import android.app.Activity
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
@@ -17,6 +16,7 @@ typealias PidInfo = List<Pair<String, List<String>>>
 class TorqueServiceWrapper: Service() {
     private val binder = LocalBinder()
     var wasStartAttempted = false
+    var torqueBindSucceeded = false
     var torqueService: ITorqueService? = null
     val onConnect = ArrayList<(ITorqueService) -> Unit>()
     var pids: PidInfo? = null
@@ -26,7 +26,8 @@ class TorqueServiceWrapper: Service() {
     override fun onCreate() {
         super.onCreate()
         if (!wasStartAttempted) {
-            wasStartAttempted = startTorque()
+            torqueBindSucceeded = startTorque()
+            wasStartAttempted = true
         }
         connectCount++
     }
@@ -34,8 +35,13 @@ class TorqueServiceWrapper: Service() {
     override fun onDestroy() {
         super.onDestroy()
         connectCount--
-        if (connectCount == 0) {
-            unbindService(torqueConnection)
+        if (connectCount == 0 && torqueBindSucceeded) {
+            try {
+                unbindService(torqueConnection)
+            } catch (e: IllegalArgumentException) {
+                Timber.w(e, "TorqueServiceWrapper: tried to unbind torque when not bound")
+            }
+            torqueBindSucceeded = false
         }
     }
 
@@ -125,7 +131,10 @@ class TorqueServiceWrapper: Service() {
     fun startTorque(): Boolean {
         val intent = Intent()
         intent.setClassName("org.prowl.torque", "org.prowl.torque.remote.TorqueService")
-        val torqueBind = bindService(intent, torqueConnection, Activity.BIND_AUTO_CREATE)
+        // Do NOT use BIND_AUTO_CREATE — that implicitly starts Torque's foreground service,
+        // which causes the ANR if Torque doesn't call startForeground() in time.
+        // Use 0 so we only bind when Torque is already running.
+        val torqueBind = bindService(intent, torqueConnection, 0)
         Timber.i(
             if (torqueBind) "Connected to torque service!" else "Unable to connect to Torque plugin service"
         )

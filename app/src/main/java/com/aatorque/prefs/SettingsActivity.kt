@@ -239,7 +239,15 @@ class SettingsActivity : AppCompatActivity(),
         try {
             val launch = packageManager.getLaunchIntentForPackage(pkg)
             if (launch != null) {
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // Torque Pro's FrontPage.onCreate calls startForegroundService on its own
+                // TorqueService. On some versions this races with startForeground() and
+                // triggers an ANR / crash inside Torque. Using FLAG_ACTIVITY_NO_ANIMATION
+                // doesn't help; this is a bug in Torque itself. We keep this launch as a
+                // user-triggered convenience only — never call it programmatically.
+                launch.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                )
                 startActivity(launch)
                 Toast.makeText(this, R.string.launching_torque_pro, Toast.LENGTH_SHORT).show()
             } else {

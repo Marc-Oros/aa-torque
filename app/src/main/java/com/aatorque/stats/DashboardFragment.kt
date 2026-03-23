@@ -438,7 +438,6 @@ open class DashboardFragment : AlbumArt() {
     override fun onDestroy() {
         super.onDestroy()
         torqueService.onDestroy(requireContext())
-        torqueService.requestQuit(requireContext())
     }
 
     override suspend fun onMediaChanged(medadata: MediaMetadata?) {
