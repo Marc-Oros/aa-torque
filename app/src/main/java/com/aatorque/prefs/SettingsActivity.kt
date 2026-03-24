@@ -19,6 +19,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.Menu
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +38,7 @@ import com.aatorque.stats.App
 import com.aatorque.stats.BuildConfig
 import com.aatorque.stats.CreditsFragment
 import com.aatorque.stats.R
+import com.aatorque.stats.TorqueService
 import com.aatorque.stats.TorqueServiceWrapper
 import com.google.android.material.snackbar.Snackbar
 import com.google.protobuf.InvalidProtocolBufferException
@@ -55,6 +59,22 @@ import javax.net.ssl.SSLException
 
 class SettingsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+
+    private lateinit var torqueWarningBanner: LinearLayout
+    private lateinit var torqueDimOverlay: View
+    private lateinit var torqueLaunchButton: Button
+
+    // Reuse the same TorqueService connection mechanism used by the dashboard.
+    // Its addConnectCallback / onServiceDisconnected pattern is the authoritative
+    // way to know whether Torque is reachable in this codebase.
+    private val torqueChecker = TorqueService()
+
+    companion object {
+        private const val REQUEST_PERMISSIONS = 0
+        private const val PERMISSION_CAR_VENDOR_EXTENSION =
+            "com.google.android.gms.permission.CAR_VENDOR_EXTENSION"
+        const val EXPORT_MIME = "application/octet-stream"
+    }
 
     val br: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -94,6 +114,11 @@ class SettingsActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         supportActionBar!!.setDisplayUseLogoEnabled(true)
+
+        torqueWarningBanner = findViewById(R.id.torque_warning_banner)
+        torqueDimOverlay = findViewById(R.id.torque_dim_overlay)
+        torqueLaunchButton = findViewById(R.id.torque_launch_button)
+        torqueLaunchButton.setOnClickListener { launchTorquePro() }
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
@@ -239,7 +264,15 @@ class SettingsActivity : AppCompatActivity(),
         try {
             val launch = packageManager.getLaunchIntentForPackage(pkg)
             if (launch != null) {
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // Torque Pro's FrontPage.onCreate calls startForegroundService on its own
+                // TorqueService. On some versions this races with startForeground() and
+                // triggers an ANR / crash inside Torque. Using FLAG_ACTIVITY_NO_ANIMATION
+                // doesn't help; this is a bug in Torque itself. We keep this launch as a
+                // user-triggered convenience only — never call it programmatically.
+                launch.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                )
                 startActivity(launch)
                 Toast.makeText(this, R.string.launching_torque_pro, Toast.LENGTH_SHORT).show()
             } else {
@@ -360,9 +393,34 @@ class SettingsActivity : AppCompatActivity(),
         }
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_PERMISSIONS)
-            return
         }
+        // Start Torque connection probe using the same mechanism as the dashboard.
+        // Show banner immediately (assume not connected), then hide it once we get a callback.
+        updateTorqueWarningBanner(false)
+        torqueChecker.addConnectCallback {
+            // Called on main thread when Torque service connects
+            runOnUiThread { updateTorqueWarningBanner(true) }
+        }
+        torqueChecker.onDisconnect.add {
+            // Called when Torque service disconnects (app killed etc.)
+            runOnUiThread { updateTorqueWarningBanner(false) }
+        }
+        torqueChecker.startTorque(this)
+    }
 
+    override fun onPause() {
+        super.onPause()
+        torqueChecker.onDestroy(this)
+    }
+
+    fun updateTorqueWarningBanner(torqueRunning: Boolean) {
+        if (torqueRunning) {
+            torqueWarningBanner.visibility = View.GONE
+            torqueDimOverlay.visibility = View.GONE
+        } else {
+            torqueWarningBanner.visibility = View.VISIBLE
+            torqueDimOverlay.visibility = View.VISIBLE
+        }
     }
 
 
@@ -527,11 +585,4 @@ class SettingsActivity : AppCompatActivity(),
         }
     }
 
-
-    companion object {
-        private const val REQUEST_PERMISSIONS = 0
-        private const val PERMISSION_CAR_VENDOR_EXTENSION =
-            "com.google.android.gms.permission.CAR_VENDOR_EXTENSION"
-        const val EXPORT_MIME = "application/octet-stream"
-    }
 }

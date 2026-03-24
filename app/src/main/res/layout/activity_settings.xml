@@ -11,13 +11,70 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/settings_fragment"
+        <!-- Torque not running warning banner -->
+        <LinearLayout
+            android:id="@+id/torque_warning_banner"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </androidx.fragment.app.FragmentContainerView>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#CC8B0000"
+            android:padding="12dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_dialog_alert"
+                android:tint="#FFFFFF"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/torque_warning_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="@string/torque_not_running_warning"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/torque_launch_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/launch_torque_pro"
+                android:textColor="#FFFFFF"
+                app:strokeColor="#FFFFFF" />
+
+        </LinearLayout>
+
+        <!-- Dimming overlay shown over settings when Torque is not running -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/settings_fragment"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <View
+                android:id="@+id/torque_dim_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#99000000"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </FrameLayout>
 
     </LinearLayout>
 
