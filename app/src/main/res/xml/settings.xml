@@ -167,4 +167,42 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:title="@string/tire_pressure_thresholds"
+        android:singleLineTitle="false">
+
+        <EditTextPreference
+            android:key="tirePressureFrontLowBar"
+            android:title="@string/tire_pressure_front_low"
+            android:summary="@string/tire_pressure_threshold_summary"
+            android:persistent="false"
+            android:defaultValue="2.0"
+            android:inputType="numberDecimal" />
+
+        <EditTextPreference
+            android:key="tirePressureFrontHighBar"
+            android:title="@string/tire_pressure_front_high"
+            android:summary="@string/tire_pressure_threshold_summary"
+            android:persistent="false"
+            android:defaultValue="2.5"
+            android:inputType="numberDecimal" />
+
+        <EditTextPreference
+            android:key="tirePressureRearLowBar"
+            android:title="@string/tire_pressure_rear_low"
+            android:summary="@string/tire_pressure_threshold_summary"
+            android:persistent="false"
+            android:defaultValue="2.0"
+            android:inputType="numberDecimal" />
+
+        <EditTextPreference
+            android:key="tirePressureRearHighBar"
+            android:title="@string/tire_pressure_rear_high"
+            android:summary="@string/tire_pressure_threshold_summary"
+            android:persistent="false"
+            android:defaultValue="2.5"
+            android:inputType="numberDecimal" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

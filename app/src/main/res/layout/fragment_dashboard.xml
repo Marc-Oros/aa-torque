@@ -388,7 +388,8 @@
             android:layout="@layout/fragment_tire_hud"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_margin="16dp" />
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

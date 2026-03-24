@@ -45,4 +45,10 @@
     <color name="graphColor2">#aee93d</color>
     <color name="graphColor3">#e9783d</color>
     <color name="transparentBlack">#88000000</color>
+    <color name="tireHudPanel">#66202020</color>
+    <color name="tireHudPanelStroke">#66FFFFFF</color>
+    <color name="tireHudLabel">#B3FFFFFF</color>
+    <color name="tirePressureLow">#FF64B5F6</color>
+    <color name="tirePressureNormal">#FFFFFFFF</color>
+    <color name="tirePressureHigh">#FFFF5252</color>
 </resources>

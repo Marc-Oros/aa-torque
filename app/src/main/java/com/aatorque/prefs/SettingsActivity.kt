@@ -305,9 +305,10 @@ class SettingsActivity : AppCompatActivity(),
         // This lambda will be executed when the activity result returns
         lifecycleScope.launch(Dispatchers.IO) {
             val data = applicationContext.dataStore.data.first()
+            val normalizedData = normalizePressureThresholds(data)
             val result = if (uri != null) {
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    UserPreferenceSerializer.writeTo(data, outputStream)
+                    UserPreferenceSerializer.writeTo(normalizedData, outputStream)
                 }
                 R.string.file_exported_successfully
             } else {
@@ -326,7 +327,8 @@ class SettingsActivity : AppCompatActivity(),
             this@SettingsActivity.lifecycleScope.launch {
                 try {
                     this@SettingsActivity.applicationContext.dataStore.updateData {
-                        return@updateData UserPreference.parseFrom(inStream)
+                        val imported = UserPreference.parseFrom(inStream)
+                        return@updateData normalizePressureThresholds(imported)
                     }
                 } catch (e: InvalidProtocolBufferException) {
                     Toast.makeText(
@@ -337,6 +339,49 @@ class SettingsActivity : AppCompatActivity(),
                 }
             }
         }
+    }
+
+    private fun normalizePressureThresholds(pref: UserPreference): UserPreference {
+        var frontLow = when {
+            pref.tirePressureFrontLowBar > 0.0 -> pref.tirePressureFrontLowBar
+            else -> 2.0
+        }
+        var frontHigh = when {
+            pref.tirePressureFrontHighBar > 0.0 -> pref.tirePressureFrontHighBar
+            else -> 2.5
+        }
+        var rearLow = when {
+            pref.tirePressureRearLowBar > 0.0 -> pref.tirePressureRearLowBar
+            else -> 2.0
+        }
+        var rearHigh = when {
+            pref.tirePressureRearHighBar > 0.0 -> pref.tirePressureRearHighBar
+            else -> 2.5
+        }
+
+        if (frontLow >= frontHigh) {
+            frontLow = 2.0
+            frontHigh = 2.5
+        }
+        if (rearLow >= rearHigh) {
+            rearLow = 2.0
+            rearHigh = 2.5
+        }
+
+        if (pref.tirePressureFrontLowBar == frontLow &&
+            pref.tirePressureFrontHighBar == frontHigh &&
+            pref.tirePressureRearLowBar == rearLow &&
+            pref.tirePressureRearHighBar == rearHigh
+        ) {
+            return pref
+        }
+
+        return pref.toBuilder()
+            .setTirePressureFrontLowBar(frontLow)
+            .setTirePressureFrontHighBar(frontHigh)
+            .setTirePressureRearLowBar(rearLow)
+            .setTirePressureRearHighBar(rearHigh)
+            .build()
     }
 
     class ExportFileContract : ActivityResultContract<String, Uri?>() {
@@ -395,8 +440,7 @@ class SettingsActivity : AppCompatActivity(),
             requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_PERMISSIONS)
         }
         // Start Torque connection probe using the same mechanism as the dashboard.
-        // Show banner immediately (assume not connected), then hide it once we get a callback.
-        updateTorqueWarningBanner(false)
+        // Apply immediate bind result first, then update via connect/disconnect callbacks.
         torqueChecker.addConnectCallback {
             // Called on main thread when Torque service connects
             runOnUiThread { updateTorqueWarningBanner(true) }
@@ -405,7 +449,8 @@ class SettingsActivity : AppCompatActivity(),
             // Called when Torque service disconnects (app killed etc.)
             runOnUiThread { updateTorqueWarningBanner(false) }
         }
-        torqueChecker.startTorque(this)
+        val isBound = torqueChecker.startTorque(this)
+        updateTorqueWarningBanner(isBound)
     }
 
     override fun onPause() {

@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.CheckBoxPreference
 import androidx.preference.EditTextPreference
@@ -16,9 +17,6 @@ import androidx.preference.SeekBarPreference
 import com.aatorque.datastore.UserPreference
 import com.aatorque.stats.NotiService
 import com.aatorque.stats.R
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -49,6 +47,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
     lateinit var tireTemperatureRearLeftPref: ListPreference
     lateinit var tireTemperatureRearRightPref: ListPreference
 
+    // Tire pressure severity thresholds (bar)
+    lateinit var tirePressureFrontLowPref: EditTextPreference
+    lateinit var tirePressureFrontHighPref: EditTextPreference
+    lateinit var tirePressureRearLowPref: EditTextPreference
+    lateinit var tirePressureRearHighPref: EditTextPreference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferenceManager.sharedPreferencesName = null
@@ -76,6 +80,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         tireTemperatureRearLeftPref = findPreference("tireTemperatureRearLeft")!!
         tireTemperatureRearRightPref = findPreference("tireTemperatureRearRight")!!
 
+        tirePressureFrontLowPref = findPreference("tirePressureFrontLowBar")!!
+        tirePressureFrontHighPref = findPreference("tirePressureFrontHighBar")!!
+        tirePressureRearLowPref = findPreference("tirePressureRearLowBar")!!
+        tirePressureRearHighPref = findPreference("tirePressureRearHighBar")!!
+
         // Set summary providers for tire PID selectors
         tirePressureFrontLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         tirePressureFrontRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
@@ -85,6 +94,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
         tireTemperatureFrontRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         tireTemperatureRearLeftPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         tireTemperatureRearRightPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        tirePressureFrontLowPref.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+        tirePressureFrontHighPref.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+        tirePressureRearLowPref.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+        tirePressureRearHighPref.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
 
         // Add preference change listeners to reload tire HUD when PIDs change
         val tirePreferenceChangeListener = { preference: androidx.preference.Preference, newValue: Any ->
@@ -118,6 +131,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
         tireTemperatureFrontRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
         tireTemperatureRearLeftPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
         tireTemperatureRearRightPref.setOnPreferenceChangeListener(tirePreferenceChangeListener)
+
+        val thresholdEditTextListener = EditTextPreference.OnBindEditTextListener {
+            it.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        tirePressureFrontLowPref.setOnBindEditTextListener(thresholdEditTextListener)
+        tirePressureFrontHighPref.setOnBindEditTextListener(thresholdEditTextListener)
+        tirePressureRearLowPref.setOnBindEditTextListener(thresholdEditTextListener)
+        tirePressureRearHighPref.setOnBindEditTextListener(thresholdEditTextListener)
+
+        tirePressureFrontLowPref.setOnPreferenceChangeListener { _, newValue ->
+            savePressureThreshold("frontLow", newValue as String)
+        }
+        tirePressureFrontHighPref.setOnPreferenceChangeListener { _, newValue ->
+            savePressureThreshold("frontHigh", newValue as String)
+        }
+        tirePressureRearLowPref.setOnPreferenceChangeListener { _, newValue ->
+            savePressureThreshold("rearLow", newValue as String)
+        }
+        tirePressureRearHighPref.setOnPreferenceChangeListener { _, newValue ->
+            savePressureThreshold("rearHigh", newValue as String)
+        }
 
         themePref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         fontPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
@@ -247,6 +281,28 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 tireTemperatureFrontRightPref.value = it.tireTemperatureFrontRight
                 tireTemperatureRearLeftPref.value = it.tireTemperatureRearLeft
                 tireTemperatureRearRightPref.value = it.tireTemperatureRearRight
+
+                val frontLow = when {
+                    it.tirePressureFrontLowBar > 0.0 -> it.tirePressureFrontLowBar
+                    else -> 2.1
+                }
+                val frontHigh = when {
+                    it.tirePressureFrontHighBar > 0.0 -> it.tirePressureFrontHighBar
+                    else -> 2.8
+                }
+                val rearLow = when {
+                    it.tirePressureRearLowBar > 0.0 -> it.tirePressureRearLowBar
+                    else -> 2.1
+                }
+                val rearHigh = when {
+                    it.tirePressureRearHighBar > 0.0 -> it.tirePressureRearHighBar
+                    else -> 2.8
+                }
+
+                tirePressureFrontLowPref.text = formatThreshold(frontLow, 2.1)
+                tirePressureFrontHighPref.text = formatThreshold(frontHigh, 2.8)
+                tirePressureRearLowPref.text = formatThreshold(rearLow, 2.1)
+                tirePressureRearHighPref.text = formatThreshold(rearHigh, 2.8)
             }
         }
         lifecycleScope.launch {
@@ -271,13 +327,62 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     private fun updateDatastorePref(updateBuilder: (obj: UserPreference.Builder) -> UserPreference.Builder) {
-        GlobalScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch {
             requireContext().dataStore.updateData { currentSettings ->
                 updateBuilder(currentSettings.toBuilder()).build()
             }
         }
+    }
+
+    private fun parseThreshold(input: String): Double? {
+        return input.trim().replace(',', '.').toDoubleOrNull()
+    }
+
+    private fun formatThreshold(value: Double, fallback: Double): String {
+        val source = if (value > 0.0) value else fallback
+        return String.format("%.1f", source)
+    }
+
+    private fun savePressureThreshold(which: String, rawValue: String): Boolean {
+        val parsed = parseThreshold(rawValue)
+        if (parsed == null || parsed <= 0.0) {
+            Toast.makeText(requireContext(), R.string.tire_pressure_threshold_invalid, Toast.LENGTH_SHORT)
+                .show()
+            return false
+        }
+
+        var frontLow = parseThreshold(tirePressureFrontLowPref.text ?: "") ?: 2.1
+        var frontHigh = parseThreshold(tirePressureFrontHighPref.text ?: "") ?: 2.8
+        var rearLow = parseThreshold(tirePressureRearLowPref.text ?: "") ?: 2.1
+        var rearHigh = parseThreshold(tirePressureRearHighPref.text ?: "") ?: 2.8
+
+        when (which) {
+            "frontLow" -> frontLow = parsed
+            "frontHigh" -> frontHigh = parsed
+            "rearLow" -> rearLow = parsed
+            "rearHigh" -> rearHigh = parsed
+        }
+
+        if (!(frontLow < frontHigh && rearLow < rearHigh)) {
+            Toast.makeText(
+                requireContext(),
+                R.string.tire_pressure_threshold_invalid_order,
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+
+        updateDatastorePref {
+            it.setTirePressureFrontLowBar(frontLow)
+                .setTirePressureFrontHighBar(frontHigh)
+                .setTirePressureRearLowBar(rearLow)
+                .setTirePressureRearHighBar(rearHigh)
+        }
+
+        androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(requireContext())
+            .sendBroadcast(android.content.Intent("TIRE_PREFERENCES_CHANGED"))
+        return true
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {

@@ -1,12 +1,20 @@
 package com.aatorque.stats
 
+import android.graphics.Typeface
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
+import com.aatorque.prefs.dataStore
+import com.aatorque.prefs.SettingsViewModel
 import com.aatorque.stats.databinding.FragmentTireHudBinding
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class TireHudFragment : Fragment() {
@@ -18,6 +26,12 @@ class TireHudFragment : Fragment() {
 
     // Store TorqueData objects for each tire sensor, just like other components do
     private val tireDataMap = mutableMapOf<Pair<TirePosition, DataType>, TorqueData?>()
+    private val latestValueMap = mutableMapOf<Pair<TirePosition, DataType>, Double>()
+
+    private var frontLowBar = 2.0
+    private var frontHighBar = 2.5
+    private var rearLowBar = 2.0
+    private var rearHighBar = 2.5
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,8 +47,36 @@ class TireHudFragment : Fragment() {
         // Initialize UI with placeholder values
         initializePlaceholderData()
 
+        observeTypeface()
+        observeThresholds()
+
         // Observe chart visibility to hide tire HUD when chart is shown
         observeChartVisibility()
+    }
+
+    private fun observeTypeface() {
+        val parent = parentFragment as? DashboardFragment ?: return
+        ViewModelProvider(parent)[SettingsViewModel::class.java]
+            .typefaceLiveData
+            .observe(viewLifecycleOwner, ::applyTypeface)
+    }
+
+    private fun applyTypeface(typeface: Typeface) {
+        val textViews = listOf(
+            binding.frontLeftLabel,
+            binding.frontRightLabel,
+            binding.rearLeftLabel,
+            binding.rearRightLabel,
+            binding.frontLeftTirePressure,
+            binding.frontLeftTireTemperature,
+            binding.frontRightTirePressure,
+            binding.frontRightTireTemperature,
+            binding.rearLeftTirePressure,
+            binding.rearLeftTireTemperature,
+            binding.rearRightTirePressure,
+            binding.rearRightTireTemperature,
+        )
+        textViews.forEach { it.typeface = typeface }
     }
 
     // Method to setup tire data using TorqueData objects, just like TorqueDisplay.setupElement()
@@ -106,8 +148,13 @@ class TireHudFragment : Fragment() {
             }
         }
 
+        latestValueMap[position to dataType] = value
+
         when (dataType) {
-            DataType.PRESSURE -> textView.text = formatPressure(value)
+            DataType.PRESSURE -> {
+                textView.text = formatPressure(value)
+                textView.setTextColor(resolvePressureColor(position, value))
+            }
             DataType.TEMPERATURE -> {
                 textView.text = formatTemperature(value)
                 if (value >= 0) {
@@ -119,17 +166,76 @@ class TireHudFragment : Fragment() {
 
     private fun formatPressure(value: Double): String {
         return if (value >= 0) {
-            String.format("%.1f bar", value)
+            getString(R.string.tire_pressure_value_format, value)
         } else {
-            "-- bar"
+            getString(R.string.tire_pressure_placeholder)
         }
     }
 
     private fun formatTemperature(value: Double): String {
         return if (value >= 0) {
-            String.format("%.0f °C", value)
+            getString(R.string.tire_temperature_value_format, value)
         } else {
-            "-- °C"
+            getString(R.string.tire_temperature_placeholder)
+        }
+    }
+
+    private fun resolvePressureColor(position: TirePosition, value: Double): Int {
+        if (value < 0) return ContextCompat.getColor(requireContext(), R.color.tirePressureNormal)
+        val (low, high) = when (position) {
+            TirePosition.FRONT_LEFT, TirePosition.FRONT_RIGHT -> frontLowBar to frontHighBar
+            TirePosition.REAR_LEFT, TirePosition.REAR_RIGHT -> rearLowBar to rearHighBar
+        }
+        return when {
+            value < low -> ContextCompat.getColor(requireContext(), R.color.tirePressureLow)
+            value > high -> ContextCompat.getColor(requireContext(), R.color.tirePressureHigh)
+            else -> ContextCompat.getColor(requireContext(), R.color.tirePressureNormal)
+        }
+    }
+
+    private fun observeThresholds() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            requireContext().dataStore.data
+                .map {
+                    arrayOf(
+                        when {
+                            it.tirePressureFrontLowBar > 0.0 -> it.tirePressureFrontLowBar
+                            else -> 2.0
+                        },
+                        when {
+                            it.tirePressureFrontHighBar > 0.0 -> it.tirePressureFrontHighBar
+                            else -> 2.5
+                        },
+                        when {
+                            it.tirePressureRearLowBar > 0.0 -> it.tirePressureRearLowBar
+                            else -> 2.0
+                        },
+                        when {
+                            it.tirePressureRearHighBar > 0.0 -> it.tirePressureRearHighBar
+                            else -> 2.5
+                        },
+                    )
+                }
+                .collect { values ->
+                    frontLowBar = values[0]
+                    frontHighBar = values[1]
+                    rearLowBar = values[2]
+                    rearHighBar = values[3]
+                    refreshPressureColors()
+                }
+        }
+    }
+
+    private fun refreshPressureColors() {
+        val pressureViews = mapOf(
+            TirePosition.FRONT_LEFT to binding.frontLeftTirePressure,
+            TirePosition.FRONT_RIGHT to binding.frontRightTirePressure,
+            TirePosition.REAR_LEFT to binding.rearLeftTirePressure,
+            TirePosition.REAR_RIGHT to binding.rearRightTirePressure,
+        )
+        pressureViews.forEach { (position, textView) ->
+            val latest = latestValueMap[position to DataType.PRESSURE] ?: -1.0
+            textView.setTextColor(resolvePressureColor(position, latest))
         }
     }
 

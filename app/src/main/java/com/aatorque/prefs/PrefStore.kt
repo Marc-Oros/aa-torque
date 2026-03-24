@@ -61,6 +61,10 @@ selectedTheme: "Electro Vehicle"
 selectedFont: "ev"
 selectedBackground: "background_incar_ev"
 centerGaugeLarge: true
+tirePressureFrontLowBar: 2.0
+tirePressureFrontHighBar: 2.5
+tirePressureRearLowBar: 2.0
+tirePressureRearHighBar: 2.5
 """
 
 object UserPreferenceSerializer : Serializer<UserPreference> {
@@ -85,7 +89,7 @@ object UserPreferenceSerializer : Serializer<UserPreference> {
                 UserPreference::class.java
             )
         } catch (e: Exception) {
-            Timber.e("Failed to load defaults", e)
+            Timber.e(e, "Failed to load defaults")
             UserPreference.newBuilder().addScreens(defaultScreen).build()
         }
     }

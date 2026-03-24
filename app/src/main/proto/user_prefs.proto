@@ -77,4 +77,8 @@ message UserPreference {
   string tireTemperatureFrontRight = 33;
   string tireTemperatureRearLeft = 34;
   string tireTemperatureRearRight = 35;
+  double tirePressureFrontLowBar = 36;
+  double tirePressureFrontHighBar = 37;
+  double tirePressureRearLowBar = 38;
+  double tirePressureRearHighBar = 39;
 }

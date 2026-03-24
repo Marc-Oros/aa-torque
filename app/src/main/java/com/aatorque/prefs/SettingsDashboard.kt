@@ -7,12 +7,14 @@ import android.os.IBinder
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.EditTextPreference
 import androidx.preference.Preference
+import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import com.aatorque.stats.R
 import com.aatorque.stats.TorqueServiceWrapper
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -39,51 +41,18 @@ class SettingsDashboard : PreferenceFragmentCompat() {
         R.drawable.ic_settings_view4,
     )
     var mBound = false
+    private var dashboardCollectorJob: Job? = null
+    private var currentPids: List<Pair<String, List<String>>> = emptyList()
 
     var torqueConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             mBound = true
             val torqueService = (service as TorqueServiceWrapper.LocalBinder).getService()
             torqueService.loadPidInformation(false) { pids ->
+                currentPids = pids
                 activity?.let {
                     it.runOnUiThread {
-                        mainCat.title = null
-                        val dbIndex = dashboardIndex()
-                        lifecycleScope.launch {
-                            requireContext().dataStore.data.collect { userPreference ->
-                                val screen = userPreference.getScreens(dbIndex)
-                                performanceTitle.text = screen.title
-                                performanceTitle.title = resources.getString(R.string.pref_title_performance, dbIndex + 1)
-                                optionsCat.removeAll()
-                                val sources = arrayOf(screen.gaugesList, screen.displaysList)
-                                val texts = arrayOf(
-                                    clockText.map(requireContext()::getString),
-                                    (1..4).map {
-                                        resources.getString(R.string.pref_view, it)
-                                    }
-                                )
-                                val icons = arrayOf(clockIcon, displayIcon)
-                                arrayOf("clock", "display").forEachIndexed { i, type ->
-                                    sources[i].forEachIndexed { j, screen ->
-                                        optionsCat.addPreference(
-                                            Preference(requireContext()).also {
-                                                it.key = "${type}_${dbIndex}_${j}"
-                                                it.summary = pids.firstOrNull { pid ->
-                                                    "torque_${pid.first}" == screen.pid
-                                                }?.second?.get(0) ?: ""
-                                                it.title = texts[i][j]
-                                                it.icon = AppCompatResources.getDrawable(
-                                                    requireContext(),
-                                                    icons[i][j]
-                                                )
-                                                DrawableCompat.setTint(it.icon!!, resources.getColor(R.color.tintColor, requireContext().theme))
-                                                it.fragment = SettingsPIDFragment::class.java.canonicalName
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        renderDashboardOptions()
                     }
 
                 }
@@ -97,6 +66,72 @@ class SettingsDashboard : PreferenceFragmentCompat() {
 
     fun dashboardIndex(): Int {
         return requireArguments().getCharSequence("prefix")?.split("_")!!.last().toInt()
+    }
+
+    private fun renderDashboardOptions() {
+        if (!isAdded) return
+
+        val dbIndex = dashboardIndex()
+        dashboardCollectorJob?.cancel()
+        dashboardCollectorJob = lifecycleScope.launch {
+            requireContext().dataStore.data
+                .distinctUntilChangedBy { pref ->
+                    val screen = pref.getScreens(dbIndex)
+                    Triple(screen.title, screen.gaugesList, screen.displaysList)
+                }
+                .collect { userPreference ->
+                    val screen = userPreference.getScreens(dbIndex)
+
+                    mainCat.title = resources.getString(R.string.pref_data_element_settings, dbIndex + 1)
+                    performanceTitle.text = screen.title
+                    performanceTitle.title = resources.getString(R.string.pref_title_performance, dbIndex + 1)
+
+                    val newPrefs = mutableListOf<Preference>()
+                    val sources = arrayOf(screen.gaugesList, screen.displaysList)
+                    val texts = arrayOf(
+                        clockText.map(requireContext()::getString),
+                        (1..4).map { resources.getString(R.string.pref_view, it) }
+                    )
+                    val icons = arrayOf(clockIcon, displayIcon)
+
+                    arrayOf("clock", "display").forEachIndexed { i, type ->
+                        sources[i].forEachIndexed { j, item ->
+                            val titleFallback = if (type == "clock") {
+                                resources.getString(R.string.pref_view, j + 1)
+                            } else {
+                                resources.getString(R.string.pref_view, j + 1)
+                            }
+                            val prefTitle = texts[i].getOrNull(j) ?: titleFallback
+                            val iconRes = icons[i].getOrNull(j)
+                            val pidSummary = currentPids.firstOrNull { pid ->
+                                "torque_${pid.first}" == item.pid
+                            }?.second?.getOrNull(0).orEmpty()
+
+                            newPrefs.add(
+                                Preference(requireContext()).also { pref ->
+                                    pref.key = "${type}_${dbIndex}_${j}"
+                                    pref.title = prefTitle
+                                    pref.summary = pidSummary
+                                    pref.fragment = SettingsPIDFragment::class.java.canonicalName
+                                    if (iconRes != null) {
+                                        pref.icon = AppCompatResources.getDrawable(requireContext(), iconRes)
+                                        pref.icon?.let {
+                                            DrawableCompat.setTint(
+                                                it,
+                                                resources.getColor(R.color.tintColor, requireContext().theme)
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    // Apply the full list in one pass to avoid transient blank categories.
+                    optionsCat.removeAll()
+                    newPrefs.forEach(optionsCat::addPreference)
+                }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,11 +159,13 @@ class SettingsDashboard : PreferenceFragmentCompat() {
 
     override fun onDestroy() {
         super.onDestroy()
+        dashboardCollectorJob?.cancel()
+        dashboardCollectorJob = null
         if (mBound) {
             try {
                 requireActivity().unbindService(torqueConnection)
             } catch (e: IllegalArgumentException) {
-                Timber.e("Failed to unbind service", e)
+                Timber.e(e, "Failed to unbind service")
             }
             mBound = false
         }
