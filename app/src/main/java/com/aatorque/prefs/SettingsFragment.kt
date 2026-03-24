@@ -158,7 +158,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         backgroundPref.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         numScreensPref.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
         numScreensPref.setOnPreferenceChangeListener { _, newValue ->
-            val intVal = (newValue as String).toInt()
+            val intVal = (newValue as String).toIntOrNull() ?: return@setOnPreferenceChangeListener false
             if (intVal in 1..10) {
                 lifecycleScope.launch {
                     requireContext().dataStore.updateData { currentSettings ->

@@ -439,8 +439,8 @@ class SettingsActivity : AppCompatActivity(),
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_PERMISSIONS)
         }
-        // Start Torque connection probe using the same mechanism as the dashboard.
-        // Apply immediate bind result first, then update via connect/disconnect callbacks.
+        // Start conservative: show warning until we get a real onServiceConnected callback.
+        updateTorqueWarningBanner(false)
         torqueChecker.addConnectCallback {
             // Called on main thread when Torque service connects
             runOnUiThread { updateTorqueWarningBanner(true) }
@@ -449,8 +449,7 @@ class SettingsActivity : AppCompatActivity(),
             // Called when Torque service disconnects (app killed etc.)
             runOnUiThread { updateTorqueWarningBanner(false) }
         }
-        val isBound = torqueChecker.startTorque(this)
-        updateTorqueWarningBanner(isBound)
+        torqueChecker.startTorque(this)
     }
 
     override fun onPause() {
