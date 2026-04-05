@@ -15,6 +15,7 @@ import com.aatorque.prefs.SettingsViewModel
 import com.aatorque.stats.databinding.FragmentTireHudBinding
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.math.floor
 import timber.log.Timber
 
 class TireHudFragment : Fragment() {
@@ -63,10 +64,6 @@ class TireHudFragment : Fragment() {
 
     private fun applyTypeface(typeface: Typeface) {
         val textViews = listOf(
-            binding.frontLeftLabel,
-            binding.frontRightLabel,
-            binding.rearLeftLabel,
-            binding.rearRightLabel,
             binding.frontLeftTirePressure,
             binding.frontLeftTireTemperature,
             binding.frontRightTirePressure,
@@ -158,7 +155,7 @@ class TireHudFragment : Fragment() {
             DataType.TEMPERATURE -> {
                 textView.text = formatTemperature(value)
                 if (value >= 0) {
-                    squareView.setBackgroundColor(getTemperatureColor(value.toFloat()))
+                    squareView.background?.mutate()?.setTint(getTemperatureColor(value.toFloat()))
                 }
             }
         }
@@ -166,7 +163,8 @@ class TireHudFragment : Fragment() {
 
     private fun formatPressure(value: Double): String {
         return if (value >= 0) {
-            getString(R.string.tire_pressure_value_format, value)
+            val truncatedValue = floor(value * 10.0) / 10.0
+            getString(R.string.tire_pressure_value_format, truncatedValue)
         } else {
             getString(R.string.tire_pressure_placeholder)
         }

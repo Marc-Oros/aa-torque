@@ -4,15 +4,15 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/tire_hud_panel_bg"
-    android:paddingStart="10dp"
-    android:paddingTop="5dp"
-    android:paddingEnd="6dp"
-    android:paddingBottom="5dp">
+    android:paddingStart="9dp"
+    android:paddingTop="3dp"
+    android:paddingEnd="5dp"
+    android:paddingBottom="3dp">
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="3dp"
+        android:layout_marginBottom="5dp"
         android:gravity="center"
         android:orientation="horizontal">
 
@@ -35,40 +35,32 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/front_left_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tire_position_front_left_short"
-                        android:textColor="@color/tireHudLabel"
-                        android:textSize="8sp" />
-
-                    <TextView
                         android:id="@+id/front_left_tire_pressure"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/front_left_tire_temperature"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
 
                 <FrameLayout
-                    android:layout_width="14dp"
+                    android:layout_width="16dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="-3dp"
                     android:layout_gravity="center_vertical">
 
                     <View
                         android:id="@+id/front_left_tire_square"
-                        android:layout_width="14dp"
-                        android:layout_height="22dp"
+                        android:layout_width="16dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:background="@drawable/tire_hud_tire_chip_bg" />
                 </FrameLayout>
@@ -88,14 +80,14 @@
                 android:orientation="horizontal">
 
                 <FrameLayout
-                    android:layout_width="14dp"
+                    android:layout_width="16dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical">
 
                     <View
                         android:id="@+id/front_right_tire_square"
-                        android:layout_width="14dp"
-                        android:layout_height="22dp"
+                        android:layout_width="16dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:background="@drawable/tire_hud_tire_chip_bg" />
                 </FrameLayout>
@@ -107,28 +99,20 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/front_right_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tire_position_front_right_short"
-                        android:textColor="@color/tireHudLabel"
-                        android:textSize="8sp" />
-
-                    <TextView
                         android:id="@+id/front_right_tire_pressure"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/front_right_tire_temperature"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -159,40 +143,32 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/rear_left_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tire_position_rear_left_short"
-                        android:textColor="@color/tireHudLabel"
-                        android:textSize="8sp" />
-
-                    <TextView
                         android:id="@+id/rear_left_tire_pressure"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/rear_left_tire_temperature"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
 
                 <FrameLayout
-                    android:layout_width="14dp"
+                    android:layout_width="16dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="-3dp"
                     android:layout_gravity="center_vertical">
 
                     <View
                         android:id="@+id/rear_left_tire_square"
-                        android:layout_width="14dp"
-                        android:layout_height="22dp"
+                        android:layout_width="16dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:background="@drawable/tire_hud_tire_chip_bg" />
                 </FrameLayout>
@@ -212,14 +188,14 @@
                 android:orientation="horizontal">
 
                 <FrameLayout
-                    android:layout_width="14dp"
+                    android:layout_width="16dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical">
 
                     <View
                         android:id="@+id/rear_right_tire_square"
-                        android:layout_width="14dp"
-                        android:layout_height="22dp"
+                        android:layout_width="16dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:background="@drawable/tire_hud_tire_chip_bg" />
                 </FrameLayout>
@@ -231,28 +207,20 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/rear_right_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tire_position_rear_right_short"
-                        android:textColor="@color/tireHudLabel"
-                        android:textSize="8sp" />
-
-                    <TextView
                         android:id="@+id/rear_right_tire_pressure"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/rear_right_tire_temperature"
-                        android:layout_width="46dp"
+                        android:layout_width="52dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="9sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
