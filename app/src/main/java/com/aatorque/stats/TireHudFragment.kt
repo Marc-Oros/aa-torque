@@ -15,7 +15,8 @@ import com.aatorque.prefs.SettingsViewModel
 import com.aatorque.stats.databinding.FragmentTireHudBinding
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.math.floor
+import kotlin.math.round
+import java.util.Locale
 import timber.log.Timber
 
 class TireHudFragment : Fragment() {
@@ -163,8 +164,10 @@ class TireHudFragment : Fragment() {
 
     private fun formatPressure(value: Double): String {
         return if (value >= 0) {
-            val truncatedValue = floor(value * 10.0) / 10.0
-            getString(R.string.tire_pressure_value_format, truncatedValue)
+            // Round to 2 decimal places (revert to previous behavior) and display with two decimals.
+            // Use String.format with an explicit Locale to ensure two decimals are shown regardless of resource overrides.
+            val roundedValue = round(value * 100.0) / 100.0
+            String.format(Locale.US, "%.2f bar", roundedValue)
         } else {
             getString(R.string.tire_pressure_placeholder)
         }

@@ -209,7 +209,7 @@
     <string name="tire_temperature_front_right">Front Right Tire Temperature</string>
     <string name="tire_temperature_rear_left">Rear Left Tire Temperature</string>
     <string name="tire_temperature_rear_right">Rear Right Tire Temperature</string>
-    <string name="tire_pressure_value_format">%.1f bar</string>
+    <string name="tire_pressure_value_format">%.2f bar</string>
     <string name="tire_temperature_value_format">%.0f &#176;C</string>
     <string name="tire_pressure_placeholder">-- bar</string>
     <string name="tire_temperature_placeholder">-- &#176;C</string>

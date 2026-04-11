@@ -36,25 +36,24 @@
 
                     <TextView
                         android:id="@+id/front_left_tire_pressure"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
                     <TextView
                         android:id="@+id/front_left_tire_temperature"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <FrameLayout
                     android:layout_width="16dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="-3dp"
                     android:layout_gravity="center_vertical">
 
                     <View
@@ -100,19 +99,19 @@
 
                     <TextView
                         android:id="@+id/front_right_tire_pressure"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
                     <TextView
                         android:id="@+id/front_right_tire_temperature"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -144,25 +143,24 @@
 
                     <TextView
                         android:id="@+id/rear_left_tire_pressure"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
                     <TextView
                         android:id="@+id/rear_left_tire_temperature"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <FrameLayout
                     android:layout_width="16dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="-3dp"
                     android:layout_gravity="center_vertical">
 
                     <View
@@ -208,19 +206,19 @@
 
                     <TextView
                         android:id="@+id/rear_right_tire_pressure"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_pressure_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
                     <TextView
                         android:id="@+id/rear_right_tire_temperature"
-                        android:layout_width="52dp"
+                        android:layout_width="54dp"
                         android:layout_height="wrap_content"
                         android:text="@string/tire_temperature_placeholder"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
